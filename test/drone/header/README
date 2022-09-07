@@ -1,0 +1,20 @@
+original with only files removed which are out of scope
+removed unused functions
+removed DEBUG_NORM define depedencies
+removed code for EDWARDS curve type
+removed code for MONTGOMERY curve type
+removed code not related to WEIERSTRASS curve type
+removed all hash functions except sha256
+removed unused defs from core.h
+remove code related to GENERALISED_MERSENNE
+removed code related to PSEUDO_MERSENNE 
+removed m-type code
+enabled all D_TYPE code
+removed all POSITOWER code
+removed other unused defines
+reduced the amount of function calls in ecp2, ecp and fp2
+removed big endian code
+use malloc for big arrays
+use byte instead of int if possible
+remove redundant return calculations
+--> remove side channels sec for mul
