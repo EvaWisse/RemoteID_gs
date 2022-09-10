@@ -85,10 +85,10 @@ int open()
 
 int fromFile()
 {
-  FILE *fp = fopen("demo/cpa/hybrid/original/verify_open/group_info.txt", "r");
+  FILE *fp = fopen("demo/cpa/hybrid/pre-comp_all/verify_open/group_info.txt", "r");
   if(!fp)
   {
-    printf("\tERROR, could not create \"group_info.txt\"\n");
+    printf("\tERROR, could not open \"group_info.txt\"\n");
     return EXIT_FAILURE;
   }
 

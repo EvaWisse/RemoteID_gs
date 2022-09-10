@@ -2,10 +2,8 @@
 
 int main()
 {
-  printf("Start setup phase\n");
   if(setup()) return EXIT_FAILURE;
   if(join()) return EXIT_FAILURE;
-  if(toFile())  return EXIT_FAILURE;
   if(toHeader()) return EXIT_FAILURE;
   return EXIT_SUCCESS;
 }
@@ -30,6 +28,7 @@ int join()
   if(join_part1()) return EXIT_FAILURE;
   if(join_ttp()) return EXIT_FAILURE;
   if(join_part2()) return EXIT_FAILURE;
+  
   return EXIT_SUCCESS;
 }
 
@@ -153,32 +152,9 @@ int join_part2()
   return EXIT_SUCCESS;
 }
 
-int toFile()
-{
-  FILE *fp = fopen("demo/cpa/hybrid/pre-comp/verify_open/group_info.txt", "w");
-  if(!fp)
-  {
-    printf("\tERROR, could not create \"group_info.txt\"\n");
-    return EXIT_FAILURE;
-  }
-  BIG_toFile(shared.spseq_bg.p, fp);
-  ECP_toFile(shared.spseq_bg.P, fp);
-  ECP2_toFile(shared.spseq_bg.P_hat, fp);
-  ECP2_toFile(shared.spseq_pk[0], fp);
-  ECP2_toFile(shared.spseq_pk[1], fp);
-  OCT_toFile(ttp.reg.C.V, fp);
-  OCT_toFile(ttp.reg.C.C, fp);
-  OCT_toFile(ttp.reg.C.T, fp);
-  OCT_toFile(shared.pke_param.P1, fp);
-  OCT_toFile(shared.pke_param.P2, fp);
-  OCT_toFile(ttp.pke_sk.S, fp);
-  fclose(fp);
-  return EXIT_SUCCESS;
-}
-
 int toHeader()
 {
-  FILE *fp = fopen("demo/cpa/hybrid/pre-comp/sign/drone_const.h", "w");
+  FILE *fp = fopen("demo/cca2/hybrid/original/sign/drone_const.h", "w");
 
   if(!fp)
   {
@@ -186,12 +162,17 @@ int toHeader()
     return EXIT_FAILURE;
   }
   fprintf(fp, "#include\"exfunc.h\"\n#ifndef CONST_ECP_UAS_H\n#define CONST_ECP_UAS_H\n");
-  ECP_toHeader(0, drone.m1, fp);
-  ECP_toHeader(1, drone.m2, fp);
-  ECP_toHeader(2, shared_setup.spseq_sig.Y, fp);
-  ECP_toHeader(3, shared_setup.spseq_sig.Z, fp);
-  ECP2_toHeader(0, shared_setup.spseq_sig.Y_hat, fp);
-  fprintf(fp, "#endif");
+  fprintf(fp, "char ch_m1[] =\"");
+  ECP_toheader(drone.m1, fp);
+  fprintf(fp, "\";\nchar ch_m2[] =\"");
+  ECP_toheader(drone.m2, fp);
+  fprintf(fp, "\";\nchar ch_Y[] =\"");
+  ECP_toheader(shared_setup.spseq_sig.Y, fp);
+  fprintf(fp, "\";\nchar ch_Z[] =\"");
+  ECP_toheader(shared_setup.spseq_sig.Z, fp);
+  fprintf(fp, "\";\nchar ch_Y_hat[] =\"");
+  ECP2_toheader(shared_setup.spseq_sig.Y_hat, fp);
+  fprintf(fp, "\";\n#endif\n");
   fclose(fp);
   return EXIT_SUCCESS;
 }

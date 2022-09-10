@@ -1,12 +1,10 @@
-#ifndef SETUP_H_
-#define SETUP_H_
-
 #include "../../../../../include/miracl.h"
 #include "../../../../../include/ds.h"
 #include "../../../../../include/nizk.h"
 #include "../../../../../include/pke.h"
 #include "../../../../../include/spseq.h"
 #include "../../../../../include/utils.h"
+
 
 typedef struct reg_struct
 {
@@ -46,18 +44,18 @@ typedef struct shared_setup_struct
   spseq_sig_struct    spseq_sig;
 } shared_setup_struct;
 
-typedef struct drone_output_stuct
-{
-  ECP m1;
-  ECP m2;
-  spseq_sig_struct new_sig;
-  message_struct m;
-  BIG z1;
-  BIG z2;
-  ECP2 C1;
-  ECP2 C2;
-  BIG c;
-} drone_output_stuct;
+// typedef struct drone_output_stuct
+// {
+//   ECP m1;
+//   ECP m2;
+//   spseq_sig_struct new_sig;
+//   message_struct m;
+//   BIG z1;
+//   BIG z2;
+//   ECP2 C1;
+//   ECP2 C2;
+//   BIG c;
+// } drone_output_stuct;
 
 typedef struct shared_struct
 {
@@ -67,20 +65,19 @@ typedef struct shared_struct
   pke_param_struct  pke_param;
 } shared_struct;
 
-
 shared_setup_struct shared_setup;
 shared_struct shared;
 drone_setup_struct drone_setup;
 drone_struct drone;
 ttp_struct ttp;
-drone_output_stuct drone_output;
+// drone_output_stuct drone_output;
 
 int setup();
 int join();
 int join_part1();
 int join_ttp();
 int join_part2();
-int toFile();
+int sign();
+int open();
+int verify();
 int toHeader();
-
-#endif

@@ -15,108 +15,123 @@ void ECP2_precomp(int index, ECP2 ecp2, FILE *fp);
 #ifdef WRITE
 int main()
 {
-  BIG big[rounds], p;
-  ECP2 ecp2, P_hat;
-  ECP ecp[rounds], P;
 
-  ECP_generator(&P);
-  ECP2_generator(&P_hat);
-  BIG_rcopy(p, CURVE_Order);
+  ECP ecp1, ecp2, ecp3, ecp4;
+  ECP_generator(&ecp1);
+  ECP_generator(&ecp2);
+  ECP_generator(&ecp3);
+  ECP_generator(&ecp4);
 
-  char *raw;
-  csprng RNG;
-  raw = (char*) malloc(100 * sizeof(char));
-  RAND_seed(&RNG, 100, raw);
-  free(raw);
+  ECP_pinmul(&ecp2, 2, 8);
+  ECP_pinmul(&ecp3, 3, 8);
+  ECP_pinmul(&ecp4, 3, 8);
 
-  for(int i=0;i<rounds;i++)
-  {
-    BIG_randomnum(big[i], p, &RNG);
-    ECP_copy(&ecp[i], &P);
-    ECP_mul(&ecp[i], big[i]);
-  }
+  ECP_output(&ecp1);
+   printf("\n");
+  ECP_output(&ecp2); 
+  printf("\n");
+  ECP_output(&ecp3); 
+  printf("\n");
+  ECP_output(&ecp4); 
+  printf("\n");
   
-  BIG x, y;
-  FILE *fp = fopen("test/precomp/precomp.h", "w");
+  // write values to file
+  FILE *fp =  fopen("test/precomp/precomp.h", "w");
   if(!fp)
   {
-    printf("\tERROR, could not create \"drone_const.h\"\n");
+    printf("\tERROR, could not create \"precomp.h\"\n");
     return EXIT_FAILURE;
   }
-  fprintf(fp, "#include\"../../include/miracl.h\"\n#ifndef CONST_ECP_UAS_H\n#define CONST_ECP_UAS_H\n");
-  fprintf(fp, "const BIG ECP[%d]= {", rounds * 2);
-  for(int i=0;i<rounds;i++) ECP_precomp(0, ecp[i], fp);
-  fseek(fp, -2, SEEK_CUR);
-  fprintf(fp, "};", rounds * 2);
 
-  // ECP2_toHeader(0, ecp2, fp);
-  fprintf(fp, "\n#endif");
-  fclose(fp);
+BIG x;
+  fprintf(fp, "#include\"../../include/miracl.h\"\n#ifndef PRECOMP_UAS_H\n#define PRECOMP_UAS_H\n");
+  fprintf(fp, "const BIG m1[4]={");
+   fprintf(fp, "{0X");
+  FP_reduce(&(ecp1.x));
+  FP_redc(x, &(ecp1.x));
+  BIG_toCon(x,  fp);
+  fprintf(fp,"}, ");
+  
+  fprintf(fp, "{0X");
+  FP_reduce(&(ecp1.y));
+  FP_redc(x, &(ecp1.y));
+  BIG_toCon(x,  fp);
+  fprintf(fp,"}} ,");
+
+    fprintf(fp, "{{0x");
+  FP_reduce(&(ecp2.x));
+  FP_redc(x, &(ecp2.x));
+  BIG_toCon(x,  fp);
+  fprintf(fp,"}, ");
+  
+  fprintf(fp, "{0X");
+  FP_reduce(&(ecp2.y));
+  FP_redc(x, &(ecp2.y));
+  BIG_toCon(x,  fp);
+  fprintf(fp,"}} ");
+
+   fprintf(fp, "{0X");
+  FP_reduce(&(ecp3.x));
+  FP_redc(x, &(ecp3.x));
+  BIG_toCon(x,  fp);
+  fprintf(fp,"}, ");
+  
+  fprintf(fp, "{0X");
+  FP_reduce(&(ecp3.y));
+  FP_redc(x, &(ecp3.y));
+  BIG_toCon(x,  fp);
+  fprintf(fp,"}} ,");
+
+    fprintf(fp, "{{0X");
+  FP_reduce(&(ecp4.x));
+  FP_redc(x, &(ecp4.x));
+  BIG_toCon(x,  fp);
+  fprintf(fp,"}, ");
+  
+  fprintf(fp, "{0x");
+  FP_reduce(&(ecp4.y));
+  FP_redc(x, &(ecp4.y));
+  BIG_toCon(x,  fp);
+  fprintf(fp,"}};\n ");
+
+  fprintf(fp, "#endif");
+fclose(fp);
+
 }
-
-#else 
+#else
 #include "precomp.h"
 int main()
 {
-  ECP ecp;
-  ECP2 ecp2;
-  BIG x, y;
-  for(int i=0;i<rounds;i++)
+    FILE *fp =  fopen("test/precomp/precomp.h", "r");
+  if(!fp)
   {
-
+    printf("\tERROR, could not create \"precomp.h\"\n");
+    return EXIT_FAILURE;
   }
-  
-  BIG_rcopy(x, ECP0_x);
-  BIG_rcopy(y, ECP0_y);
-  ECP_set(&ecp, x, y);
-
-  FP2 wx, wy;
-  FP2_rcopy(&wx, ECP0_x1, ECP0_y1);
-  FP2_rcopy(&wy, ECP0_x2, ECP0_y2);
-  ECP2_set(&ecp2, &wx, &wy);
-  ECP_output(&ecp);
-  ECP2_output(&ecp2);
-}
-#endif
-void ECP_precomp(int index, ECP ecp, FILE *fp)
-{
-  BIG x;
-  fprintf(fp, "{0x", index);
-  FP_reduce(&(ecp.x));
-  FP_redc(x, &(ecp.x));
-  BIG_toCon(x,  fp);
-  fprintf(fp,"}, ");
-  
-  fprintf(fp, "{0x", index);
-  FP_reduce(&(ecp.y));
-  FP_redc(x, &(ecp.y));
-  BIG_toCon(x,  fp);
-  fprintf(fp,"}, ");
-}
-
-void ECP2_precomp(int index, ECP2 ecp2, FILE *fp)
-{
-  FP2 fp2_x,fp2_y;
   BIG x, y;
-  ECP2_get(&fp2_x, &fp2_y, &ecp2);
-  FP2_reduce(&fp2_x); FP2_reduce(&fp2_y);
-  FP_redc(x, &fp2_x.a);
-  FP_redc(y, &fp2_x.b);
-  fprintf(fp, "{0x", index);
-  BIG_toCon(x,  fp);
-  fprintf(fp,"}, ");
+  ECP ecp1, ecp2, ecp3, ecp4;
+  BIG_rcopy(x, m1[0][0]);
+  BIG_rcopy(y, m1[0][1]);
+  ECP_set(&ecp1, x, y);
 
-  fprintf(fp, "{0x", index);
-  BIG_toCon(y,  fp);
-  fprintf(fp,"}, ");
+  BIG_rcopy(x, m1[0][2]);
+  BIG_rcopy(y, m1[0][3]);
+  ECP_set(&ecp2, x, y);
 
-  FP_redc(x, &fp2_y.a);
-  FP_redc(y, &fp2_y.b);
-  fprintf(fp, "{0x", index);
-  BIG_toCon(x,  fp);
-  fprintf(fp,"}, ");
+  BIG_rcopy(x, m1[1][0]);
+  BIG_rcopy(y, m1[1][1]);
+  ECP_set(&ecp3, x, y);
 
-  fprintf(fp, "const BIG ECP%d_y2= {0x", index);
-  BIG_toCon(y,  fp);
-  fprintf(fp,"}, ");
-}
+  BIG_rcopy(x, m1[1][2]);
+  BIG_rcopy(y, m1[1][3]);
+  ECP_set(&ecp4, x, y);
+
+  ECP_output(&ecp1); 
+  printf("\n");
+  ECP_output(&ecp2);
+   printf("\n");
+  ECP_output(&ecp3);
+   printf("\n");
+  ECP_output(&ecp4);
+   printf("\n");
+#endif

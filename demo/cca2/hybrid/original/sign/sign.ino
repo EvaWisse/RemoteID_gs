@@ -28,7 +28,6 @@ void setup() {
 
   BIG_rcopy(p, CURVE_Order);
 
-  // m1
   BIG x, y;
   BIG_fromChar(&x, ch_m1);
   BIG_fromChar(&y, ch_m1 + (1<<6));
@@ -77,77 +76,117 @@ void setup() {
 
 void loop() {
   StartTime = micros();
+  byte i;
+  BIG *big;
+  big = (BIG*) malloc(5 * sizeof(BIG));
+  hash256 sh256;
   HASH256_init(&sh256);
   char *bc;
-  bc = (char*) malloc((4 * ecp_size) + ecp2_size + 32 + big_size);
+  bc = (char*) malloc((4 * ecp_size) + (3 * ecp2_size) + 32 + (2 * big_size));
   ESP.wdtFeed();
-
+  
   // m1
-  BIG_randomnum(rho, p, &RNG); // select rho in {1, ..., p-1}
+  BIG_randtrunc(big[0], p, 2 * CURVE_SECURITY_BN254, &RNG); // select rho in {1, ..., p-1}
   ECP_copy(&ecp, &m1); // copy m1
-  ECP_clmul(&ecp, rho, rho); // rho*m1
+  ECP_clmul(&ecp, big[0], big[0]); // rho*m1
   ECP_toChar(bc, &ecp);
   for (i = 0; i < ecp_size; i++) HASH256_process(&sh256, bc[i]);
   ESP.wdtFeed();
-
+  
   // m2
   ECP_copy(&ecp, &m2); // copy m2
-  ECP_clmul(&ecp, rho, rho); // rho*m2
+  ECP_clmul(&ecp, big[0], big[0]); // rho*m2
   ECP_toChar(bc + ecp_size, &ecp);
   for (i = 0; i < ecp_size; i++) HASH256_process(&sh256, bc[i + ecp_size]);
   ESP.wdtFeed();
-
+  
   // sig Z
-  BIG_randomnum(y, p, &RNG); // select y in {1, ..., p-1}
+  BIG_randtrunc(big[1], p, 2 * CURVE_SECURITY_BN254, &RNG); // select y in {1, ..., p-1} // HERE
   ECP_copy(&ecp, &Z);
-  BIG_modmul(big, y, rho, p); // rho*y
-  ECP_clmul(&ecp, big, big); // rho*y*Z
+  BIG_modmul(big[2], big[0], big[1], p); // rho*y
+  ECP_clmul(&ecp, big[2], big[2]); // rho*y*Z
   ECP_toChar(bc + 2 * ecp_size, &ecp);
   for (i = 0; i < ecp_size; i++) HASH256_process(&sh256, bc[i + (2 * ecp_size)]);
   ESP.wdtFeed();
 
-  //   sig Y
+  // sig Y
   ECP_copy(&ecp, &Y);
-  BIG_invmodp(big, y, p); // inv y mod p
-  ECP_clmul(&ecp, big, big); // inv y * Y
+  BIG_invmodp(big[2], big[1], p); // inv y mod p
+  ECP_clmul(&ecp, big[2], big[2]); // inv y * Y
   ECP_toChar(bc + 3 * ecp_size, &ecp);
   for (i = 0; i < ecp_size; i++) HASH256_process(&sh256, bc[i + (3 * ecp_size)]);
   ESP.wdtFeed();
 
   // sig Y_hat
   ECP2_copy(&ecp2, &Y_hat);// copy Y_hat
-  ECP2_mul(&ecp2, big); // inv y * Y_hat
+  ECP2_mul(&ecp2, big[2]); // inv y * Y_hat
   ECP2_toChar(bc + 4 * ecp_size, &ecp2);
   for (i = 0; i < ecp2_size; i++) HASH256_process(&sh256, bc[(4 * ecp_size) + i]);
+
+  // C2
+  BIG_randtrunc(big[1], p, 2 * CURVE_SECURITY_BN254, &RNG); // select u in {1, ..., p-1}
+  BIG_modadd(big[2], big[0], big[1], p); // rho + u
+  ECP2_copy(&ecp2, &P_hat); // copy P_hat
+  ECP2_mul(&ecp2, big[2]); // (rho + u)P_hat
+  ECP2_toChar(bc + (4 * ecp_size) + (ecp2_size), &ecp2);
+  ESP.wdtFeed();
+  
+  // C1
+  ECP2_copy(&ecp2, &Y_hat); // copy Y_hat
+  ECP2_mul(&ecp2, big[1]); // uY_hat
+  ECP2_toChar(bc + (4 * ecp_size) + (2 * ecp2_size), &ecp2);
+  ESP.wdtFeed();
+  
+  // M1
+  char *ch;
+  ch = (char*) malloc(ecp2_size * sizeof(char));
+  BIG_randtrunc(big[2], p, 2 * CURVE_SECURITY_BN254, &RNG); // select n in {1, ..., p-1}
+  ECP2_copy(&ecp2, &Y_hat); // copy Y_hat
+  ECP2_mul(&ecp2, big[2]); // nY_hat
+  ECP2_toChar(ch, &ecp2);
+  for (i = 0; i < ecp2_size; i++) HASH256_process(&sh256, ch[i]);
+  ESP.wdtFeed();
+  
+  // M2
+  BIG_randtrunc(big[3], p, 2 * CURVE_SECURITY_BN254, &RNG); // select v in {1, ..., p-1}
+  BIG_modadd(big[4], big[2], big[3], p); // v+n
+  ECP2_copy(&ecp2, &P_hat);
+  ECP2_mul(&ecp2, big[4]); // (v+n)P_hat
+  ECP2_toChar(ch, &ecp2);
+  for (i = 0; i < ecp2_size; i++) HASH256_process(&sh256, ch[i]);
   ESP.wdtFeed();
 
   // N
-  char *ch;
-  ch = (char*) malloc(sizeof(char) * ecp_size + 1);
-  BIG_randomnum(rho, p, &RNG); // select rho in {1, ..., p-1}
   ECP_copy(&ecp, &P); // P copy
-  ECP_clmul(&ecp, v, v); // vP
+  ECP_clmul(&ecp, big[3], big[3]); // vP
   ECP_toChar(ch, &ecp);
   for (i = 0; i < ecp_size; i++) HASH256_process(&sh256, ch[i]);
   free(ch);
   ESP.wdtFeed();
 
   // c
-  HASH256_hash(&sh256, bc + (4 * ecp_size) + (ecp2_size));
-  BIG_fromBytesLen(big, bc + (4 * ecp_size) + (ecp2_size), 32);
+  HASH256_hash(&sh256, bc + (4 * ecp_size) + (3 * ecp2_size));
+  BIG_fromBytesLen(big[4], bc + (4 * ecp_size) + (3 * ecp2_size), 32);
   ESP.wdtFeed();
 
   // z1
-  BIG_modmul(big, big, rho, p); // c * rho
-  BIG_modadd(big, big, v, p); // v + c * rho
-  BIG_toBytes(bc + (4 * ecp_size) + (ecp2_size) + 32, big);
+  BIG_modmul(big[0], big[4], big[0], p); // c * rho
+  BIG_modadd(big[0], big[0], big[3], p); // v + c * rho
+  BIG_toBytes(bc + (4 * ecp_size) + (3 * ecp2_size) + 32, big[0]);
+  ESP.wdtFeed();
+
+  // z2
+  BIG_modmul(big[3], big[4], big[1], p); // c * u
+  BIG_modadd(big[1], big[3], big[2], p); // n + c * u
+  BIG_toBytes(bc + (4 * ecp_size) + (3 * ecp2_size) + 32 + big_size, big[1]);
   ESP.wdtFeed();
 
   // create udp packet
 //  Udp.beginPacketMulticast(broadcast, port, WiFi.localIP());
-//  Udp.write(bc, (4 * ecp_size) + ecp2_size + 32 + big_size);
+//  Udp.write(bc, (4 * ecp_size) + (3 * ecp2_size) + 32 + (2 * big_size));
 //  Udp.endPacket();
-  ESP.wdtFeed();
+
+  free(big);
   free(bc);
 
   Serial.println(micros() - StartTime);

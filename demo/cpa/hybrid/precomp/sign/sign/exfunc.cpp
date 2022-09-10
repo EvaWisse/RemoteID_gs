@@ -24,15 +24,26 @@ int dec_fromHex(char hex)
   else return (int)(hex - 66 + 10);
 }
 
-void FP2_fromBytes(FP2 *x,char *b)
-{
-    FP_fromBytes(&(x->b),b);
-    FP_fromBytes(&(x->a),&b[MODBYTES_B256_28]);
-}
+// void FP2_fromBytes(FP2 *x,char *b)
+// {
+//     FP_fromBytes(&(x->b),b);
+//     FP_fromBytes(&(x->a),&b[MODBYTES_B256_28]);
+// }
 
-void FP_fromBytes(FP *x,char *b)
+// void FP_fromBytes(FP *x,char *b)
+// {
+//     BIG t;
+//     BIG_fromBytes(t, b);
+//     FP_nres(x, t);
+// }
+
+void BIG_fromChar(BIG *a, char ch[])
 {
-    BIG t;
-    BIG_fromBytes(t, b);
-    FP_nres(x, t);
+	byte i;
+	BIG_zero(*a);
+  for (i = 0 ; i < MODBYTES_B256_28 * 2 ; i++)
+  {
+    BIG_fshl(*a, 4);
+    *a[0] += dec_fromHex(ch[i]);
+  }
 }

@@ -1,134 +1,78 @@
-
-
 #include "../../include/miracl.h"
-void ECP_toHeader(int index, ECP ecp, FILE *fp);
-void ECP2_toHeader(int index, ECP2 ecp2, FILE *fp);
-void BIG_toCon(BIG x, FILE *fp);
+#include "../../include/utils.h"
 
-// #define WRITE
+#define rounds 1
+#define WRITE
+
 #ifdef WRITE
 int main()
 {
-  BIG big, p;
-  ECP2 ecp2, P_hat;
-  ECP ecp, P;
-
-  ECP_generator(&ecp);
-  ECP2_generator(&ecp2);
-  BIG_rcopy(p, CURVE_Order);
-  ECP_output(&ecp);
-  ECP2_output(&ecp2);
-
-  char *raw;
   csprng RNG;
-  raw = (char*) malloc(100 * sizeof(char));
-  RAND_seed(&RNG, 100, raw);
-  free(raw);
+  char raw[100];
+  octet RAW = {0, sizeof(raw), raw};
+  RAW.len = 100;
+  CREATE_CSPRNG(&RNG, &RAW);
 
-  BIG_randomnum(big, p, &RNG);
+  BIG big[rounds];
+  ECP ecp[rounds], P;
+  ECP_generator(&P);
+  FILE *FP=fopen("back.txt", "w");
   
-  BIG x, y;
-  FILE *fp = fopen("test/read_const/drone_const.h", "w");
-  if(!fp)
+  FILE *fp = fopen("header.h", "w");
+  fprintf(fp, "#include \"include/miracl.h\"\n#ifndef CONST_ECP_UAS_H\n#define CONST_ECP_UAS_H\n");
+  fprintf(fp, "const BIG test={");
+  for(int i=0;i<rounds; i++)
   {
-    printf("\tERROR, could not create \"drone_const.h\"\n");
-    return EXIT_FAILURE;
+    BIG_random(big[i], &RNG);
+    ECP_copy(&ecp[i], &P);
+    ECP_mul(&ecp[i], big[i]);
+    ECP_precomp(i,ecp[i], fp);
+    // ECP_toFile(ecp[i], FP);
   }
-  fprintf(fp, "#include\"../../include/miracl.h\"\n#ifndef CONST_ECP_UAS_H\n#define CONST_ECP_UAS_H\n");
-  ECP_toHeader(0, ecp, fp);
-  ECP2_toHeader(0, ecp2, fp);
-  fprintf(fp, "#endif");
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "};\n");
+  fprintf(fp, "#endif\n");
   fclose(fp);
+  fclose(FP);
 }
-
-#else 
-#include "drone_const.h"
+#else
+#include "header.h"
 int main()
 {
-  ECP ecp;
-  ECP2 ecp2;
+  BIG big[rounds];
+  ECP ecp[rounds], P, check_ecp;
+  BIG x, y;  
+  
 
-  BIG x, y;
   BIG_rcopy(x, ECP0_x);
   BIG_rcopy(y, ECP0_y);
-  ECP_set(&ecp, x, y);
+  ECP_set(&ecp[0], x, y);
+  ECP_output(&ecp[0]);
+  printf("\n");
 
-  FP2 wx, wy;
-  FP2_rcopy(&wx, ECP0_x1, ECP0_y1);
-  FP2_rcopy(&wy, ECP0_x2, ECP0_y2);
-  ECP2_set(&ecp2, &wx, &wy);
-  ECP_output(&ecp);
-  ECP2_output(&ecp2);
+  FILE *fp = fopen("back.txt", "r");
+  ECP_fromFile(fp, check_ecp);
+  if(ECP_equals(&check_ecp, ecp[0]))
+
+  //   BIG_rcopy(x, ECP1_x);
+  // BIG_rcopy(y, ECP1_y);
+  // ECP_set(&ecp[1], x, y);
+  // ECP_output(&ecp[1]);
+  // printf("\n");
+
+  //   BIG_rcopy(x, ECP2_x);
+  // BIG_rcopy(y, ECP2_y);
+  // ECP_set(&ecp[2], x, y);
+  // ECP_output(&ecp[2]);
+  // printf("\n");
+
+  //   BIG_rcopy(x, ECP2_x);
+  // BIG_rcopy(y, ECP2_y);
+  // ECP_set(&ecp[2], x, y);
+  // ECP_output(&ecp[2]);
+  // printf("\n");
+
+
+  
 }
 #endif
-void ECP_toHeader(int index, ECP ecp, FILE *fp)
-{
-  BIG x;
-  fprintf(fp, "const BIG ECP%d_x= {0x", index);
-  FP_reduce(&(ecp.x));
-  FP_redc(x, &(ecp.x));
-  BIG_toCon(x,  fp);
-  fprintf(fp,"};\n");
-  
-  fprintf(fp, "const BIG ECP%d_y= {0x", index);
-  FP_reduce(&(ecp.y));
-  FP_redc(x, &(ecp.y));
-  BIG_toCon(x,  fp);
-  fprintf(fp,"};\n");
-}
-
-void ECP2_toHeader(int index, ECP2 ecp2, FILE *fp)
-{
-  FP2 fp2_x,fp2_y;
-  BIG x, y;
-  ECP2_get(&fp2_x, &fp2_y, &ecp2);
-  FP2_reduce(&fp2_x); FP2_reduce(&fp2_y);
-  FP_redc(x, &fp2_x.a);
-  FP_redc(y, &fp2_x.b);
-  fprintf(fp, "const BIG ECP%d_x1= {0x", index);
-  BIG_toCon(x,  fp);
-  fprintf(fp,"};\n");
-
-  fprintf(fp, "const BIG ECP%d_y1= {0x", index);
-  BIG_toCon(y,  fp);
-  fprintf(fp,"};\n");
-
-  FP_redc(x, &fp2_y.a);
-  FP_redc(y, &fp2_y.b);
-  fprintf(fp, "const BIG ECP%d_x2= {0x", index);
-  BIG_toCon(x,  fp);
-  fprintf(fp,"};\n");
-
-  fprintf(fp, "const BIG ECP%d_y2= {0x", index);
-  BIG_toCon(y,  fp);
-  fprintf(fp,"};\n");
-}
-
-void BIG_toCon(BIG x, FILE *fp)
-{
-  int i, len;
-  BIG b;
-  len = BIG_nbits(x);
-  if (len % 4 == 0) len /= 4;
-  else
-  {
-    len /= 4;
-    len++;
-  }
-  if (len < MODBYTES_B256_28 * 2) len = MODBYTES_B256_28 * 2;
-
-  char t[70];
-  for(i=0;i<70;i++) t[i]=0;
-  for (i = len - 1; i >= 0; i--)
-  {
-    BIG_copy(b, x);
-    BIG_shr(b, i * 4);
-    t[i] = (unsigned int) b[0] & 15;
-  }
-
-  for(i=0;i<10;i++)
-  {
-    if(i>0) fprintf(fp, " ,0x");
-    for(int j =6;j>=0; j--) fprintf(fp, "%01x", t[j+ (i*7)]);
-  }  
-}

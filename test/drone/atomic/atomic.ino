@@ -4,6 +4,8 @@ void setup() {
   delay(10000);
   ESP.wdtEnable(WDTO_15MS);
   Serial.begin(115200);
+  Serial.println(F("Start atomic test"));
+
   char *raw;
   csprng RNG;
   raw = (char*) malloc(100 * sizeof(char));
@@ -23,16 +25,7 @@ void setup() {
 
   for (i = 0; i < NLEN_B256_28; i++) p[i] = CURVE_Order[i];
 
-  Serial.println(F("NUMBER GEN <64 bit"));
-  for (i = 0; i < rounds; i++)
-  {
-    StartTime = micros();
-    BIG_randtrunc(big, p, 64, &RNG);
-    Serial.println(micros() - StartTime);
-    ESP.wdtFeed();
-  }
-
-  Serial.println(F("NUMBER GEN"));
+  // Serial.println(F("NUMBER GEN"));
   for (i = 0; i < rounds; i++)
   {
     StartTime = micros();
@@ -41,16 +34,7 @@ void setup() {
     ESP.wdtFeed();
   }
 
-  Serial.println(F("ECP2 copy"));
-  for (i = 0; i < rounds; i++)
-  {
-    StartTime = micros();
-    ECP2_copy(&ecp2_mul, &ecp2);
-    Serial.println(micros() - StartTime);
-    ESP.wdtFeed();
-  }
-
-  Serial.println(F("ECP copy"));
+  // Serial.println(F("ECP copy"));
   for (i = 0; i < rounds; i++) // only one operation per cycle gives 0 for time
   {
     StartTime = micros();
@@ -59,7 +43,26 @@ void setup() {
     ESP.wdtFeed();
   }
 
-  Serial.println(F("ECP2 MUL BIG"));
+  // Serial.println(F("ECP2 copy"));
+  for (i = 0; i < rounds; i++)
+  {
+    StartTime = micros();
+    ECP2_copy(&ecp2_mul, &ecp2);
+    Serial.println(micros() - StartTime);
+    ESP.wdtFeed();
+  }
+
+  // Serial.println(F("ECP MUL"));
+  for (i = 0; i < rounds; i++)
+  {
+    StartTime = micros();
+    ECP_clmul(&ecp_mul, big, big);
+    Serial.println(micros() - StartTime);
+    ECP_copy(&ecp_mul, &ecp);
+    ESP.wdtFeed();
+  }
+
+  // Serial.println(F("ECP2 MUL BIG"));
   for (i = 0; i < rounds; i++)
   {
     StartTime = micros();
@@ -69,38 +72,8 @@ void setup() {
     ESP.wdtFeed();
   }
 
-  Serial.println(F("ECP MUL"));
-  for (i = 0; i < rounds; i++)
-  {
-    StartTime = micros();
-    ECP_clmul(&ecp_mul, big, big);
-    Serial.println(micros() - StartTime);
-    ECP_copy(&ecp_mul, &ecp);
-    ESP.wdtFeed();
-  }
-  
-  BIG_randtrunc(big, p, 64, &RNG);
-  Serial.println(F("ECP2 MUL 64bit"));
-  for (i = 0; i < rounds; i++)
-  {
-    StartTime = micros();
-    ECP2_mul(&ecp2_mul, big);
-    Serial.println(micros() - StartTime);
-    ECP2_copy(&ecp2_mul, &ecp2);
-    ESP.wdtFeed();
-  }
-
-  Serial.println(F("ECP MUL 64bit"));
-  for (i = 0; i < rounds; i++)
-  {
-    StartTime = micros();
-    ECP_clmul(&ecp_mul, big, big);
-    Serial.println(micros() - StartTime);
-    ECP_copy(&ecp_mul, &ecp);
-    ESP.wdtFeed();
-  }
   BIG_randomnum(big1, p, &RNG);
-  Serial.println(F("BIG mod add"));
+  // Serial.println(F("BIG mod add"));
   for (i = 0; i < rounds; i++)
   {
     StartTime = micros();
@@ -109,7 +82,7 @@ void setup() {
     ESP.wdtFeed();
   }
 
-  Serial.println(F("BIG mod mul"));
+  // Serial.println(F("BIG mod mul"));
   for (i = 0; i < rounds; i++)
   {
     StartTime = micros();
@@ -118,7 +91,7 @@ void setup() {
     ESP.wdtFeed();
   }
 
-  Serial.println(F("BIG inv mod "));
+  // Serial.println(F("BIG inv mod "));
   for (i = 0; i < rounds; i++)
   {
     StartTime = micros();
@@ -127,16 +100,7 @@ void setup() {
     ESP.wdtFeed();
   }
 
-  Serial.println(F("HASH256_init"));
-  for (i = 0; i < rounds; i++)
-  {
-    StartTime = micros();
-    HASH256_init(&sh256);
-    Serial.println(micros() - StartTime);
-    ESP.wdtFeed();
-  }
-
-  Serial.println(F("BIG to Bytes"));
+  // Serial.println(F("BIG to Bytes"));
   for (i = 0; i < rounds; i++)
   {
     StartTime = micros();
@@ -145,16 +109,7 @@ void setup() {
     ESP.wdtFeed();
   }
 
-  Serial.println(F("HASH message"));
-  for (i = 0; i < rounds; i++)
-  {
-    StartTime = micros();
-    for (byte j = 0; j < 35; j++) HASH256_process(&sh256, ch[j]);
-    Serial.println(micros() - StartTime);
-    ESP.wdtFeed();
-  }
-
-  Serial.println(F("BIG from Bytes"));
+  // Serial.println(F("BIG from Bytes"));
   for (i = 0; i < rounds; i++)
   {
     StartTime = micros();
@@ -163,25 +118,7 @@ void setup() {
     ESP.wdtFeed();
   }
 
-  Serial.println(F("ECP2_toChar"));
-  for (i = 0; i < rounds; i++)
-  {
-    StartTime = micros();
-    ECP2_toChar(ch, &ecp2);
-    Serial.println(micros() - StartTime);
-    ESP.wdtFeed();
-  }
-
-  Serial.println(F("HASH ECP2"));
-  for (i = 0; i < rounds; i++)
-  {
-    StartTime = micros();
-    for (byte j = 0; j < 129; j++) HASH256_process(&sh256, ch[j]);
-    Serial.println(micros() - StartTime);
-    ESP.wdtFeed();
-  }
-
-  Serial.println(F("ECP_toChar"));
+  // Serial.println(F("ECP_toChar"));
   for (i = 0; i < rounds; i++)
   {
     StartTime = micros();
@@ -190,7 +127,34 @@ void setup() {
     ESP.wdtFeed();
   }
 
-  Serial.println(F("HASH ECP"));
+  // Serial.println(F("ECP2_toChar"));
+  for (i = 0; i < rounds; i++)
+  {
+    StartTime = micros();
+    ECP2_toChar(ch, &ecp2);
+    Serial.println(micros() - StartTime);
+    ESP.wdtFeed();
+  }
+
+  // Serial.println(F("HASH256_init"));
+  for (i = 0; i < rounds; i++)
+  {
+    StartTime = micros();
+    HASH256_init(&sh256);
+    Serial.println(micros() - StartTime);
+    ESP.wdtFeed();
+  }
+
+  // Serial.println(F("HASH message"));
+  for (i = 0; i < rounds; i++)
+  {
+    StartTime = micros();
+    for (byte j = 0; j < 35; j++) HASH256_process(&sh256, ch[j]);
+    Serial.println(micros() - StartTime);
+    ESP.wdtFeed();
+  }
+
+  // Serial.println(F("HASH ECP"));
   for (i = 0; i < rounds; i++)
   {
     StartTime = micros();
@@ -199,7 +163,16 @@ void setup() {
     ESP.wdtFeed();
   }
 
-  Serial.println(F("HASH finalize"));
+  // Serial.println(F("HASH ECP2"));
+  for (i = 0; i < rounds; i++)
+  {
+    StartTime = micros();
+    for (byte j = 0; j < 129; j++) HASH256_process(&sh256, ch[j]);
+    Serial.println(micros() - StartTime);
+    ESP.wdtFeed();
+  }
+
+  // Serial.println(F("HASH finalize"));
   for (i = 0; i < rounds; i++)
   {
     StartTime = micros();
@@ -212,6 +185,6 @@ void setup() {
 }
 
 void loop() {
-  // put your main code h"ere, to run repeatedly:
+  // put your main code here, to run repeatedly:
   ESP.wdtFeed();
 }

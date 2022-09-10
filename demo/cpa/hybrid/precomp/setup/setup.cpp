@@ -1,5 +1,5 @@
 #include "setup.h"
-
+#define FLIGHT_TIME 60 // in seconds
 int main()
 {
   printf("Start setup phase\n");
@@ -155,7 +155,7 @@ int join_part2()
 
 int toFile()
 {
-  FILE *fp = fopen("demo/cpa/hybrid/original/verify_open/group_info.txt", "w");
+  FILE *fp = fopen("demo/cpa/hybrid/precomp/verify_open/group_info.txt", "w");
   if(!fp)
   {
     printf("\tERROR, could not create \"group_info.txt\"\n");
@@ -178,14 +178,14 @@ int toFile()
 
 int toHeader()
 {
-  FILE *fp = fopen("demo/cpa/hybrid/original/sign/drone_const.h", "w");
+  FILE *fp = fopen("demo/cpa/hybrid/precomp/sign/precomp/drone_const.h", "w");
 
   if(!fp)
   {
     printf("\tERROR, could not create \"drone_const.h\"\n");
     return EXIT_FAILURE;
   }
-  fprintf(fp, "#include\"exfunc.h\"\n#ifndef CONST_ECP_UAS_H\n#define CONST_ECP_UAS_H\n");
+  fprintf(fp, "#ifndef CONST_ECP_UAS_H\n#define CONST_ECP_UAS_H\n");
   fprintf(fp, "char ch_m1[] =\"");
   ECP_toheader(drone.m1, fp);
   fprintf(fp, "\";\nchar ch_m2[] =\"");

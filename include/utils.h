@@ -29,4 +29,8 @@ void ECP_fromFile(FILE*fp, ECP *ecp);
 void ECP2_fromFile(FILE *fp, ECP2 *ecp2);
 void OCT_fromFile(int *len, char *val, FILE *fp);
 
+void ECP_precomp(ECP ecp, FILE *fp);
+void ECP2_precomp(ECP2 ecp2, FILE *fp);
+void ECP_toheader(ECP ecp, FILE *fp);
+void ECP2_toheader(ECP2 ecp2, FILE *fp);
 #endif
