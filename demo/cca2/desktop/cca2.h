@@ -1,5 +1,5 @@
-#ifndef CPA_DESKTOP_H_
-#define CPA_DESKTOP_H_
+#ifndef CCA2_H_
+#define CCA2_H_
 
 #include "../../../include/miracl.h"
 #include "../../../include/ds.h"

@@ -97,49 +97,6 @@ void BIG_toCon(BIG x, FILE *fp)
   }  
 }
 
-void ECP_toHeader(int index, ECP ecp, FILE *fp)
-{
-  BIG x;
-  fprintf(fp, "const BIG ECP%d_x= {0X", index);
-  FP_reduce(&(ecp.x));
-  FP_redc(x, &(ecp.x));
-  BIG_toCon(x,  fp);
-  fprintf(fp,"};\n");
-  
-  fprintf(fp, "const BIG ECP%d_y= {0X", index);
-  FP_reduce(&(ecp.y));
-  FP_redc(x, &(ecp.y));
-  BIG_toCon(x,  fp);
-  fprintf(fp,"};\n");
-}
-
-void ECP2_toHeader(int index, ECP2 ecp2, FILE *fp)
-{
-  FP2 fp2_x,fp2_y;
-  BIG x, y;
-  ECP2_get(&fp2_x, &fp2_y, &ecp2);
-  FP2_reduce(&fp2_x); FP2_reduce(&fp2_y);
-  FP_redc(x, &fp2_x.a);
-  FP_redc(y, &fp2_x.b);
-  fprintf(fp, "const BIG ECP%d_x1= {0x", index);
-  BIG_toCon(x,  fp);
-  fprintf(fp,"};\n");
-
-  fprintf(fp, "const BIG ECP%d_y1= {0x", index);
-  BIG_toCon(y,  fp);
-  fprintf(fp,"};\n");
-
-  FP_redc(x, &fp2_y.a);
-  FP_redc(y, &fp2_y.b);
-  fprintf(fp, "const BIG ECP%d_x2= {0x", index);
-  BIG_toCon(x,  fp);
-  fprintf(fp,"};\n");
-
-  fprintf(fp, "const BIG ECP%d_y2= {0x", index);
-  BIG_toCon(y,  fp);
-  fprintf(fp,"};\n");
-}
-
 void BIG_toFile(BIG a, FILE *fp)
 { 
 	BIG b;
@@ -268,29 +225,4 @@ void ECP2_precomp(ECP2 ecp2, FILE *fp)
   fprintf(fp, "{0x");
   BIG_toCon(y,  fp);
   fprintf(fp,"}, ");
-}
-
-
-void ECP_toheader(ECP ecp, FILE *fp)
-{
-  BIG x, y;
-  byte i;
-	for (i = 0; i < NLEN_B256_28; i++) 
-  {
-    x[i] = 0;
-    y[i] = 0;
-  }
-
-  ECP_get(x, y, &ecp);
-  BIG_toFile(x, fp);
-  BIG_toFile(y, fp);
-}
-
-void ECP2_toheader(ECP2 ecp2, FILE *fp)
-{
-  FP2 fp2_x, fp2_y;
-  ECP2_get(&fp2_x, &fp2_y, &ecp2);
-
-  FP2_toFile(fp2_x, fp);
-  FP2_toFile(fp2_y, fp);
 }

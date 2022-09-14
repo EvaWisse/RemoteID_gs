@@ -28,6 +28,6 @@ using namespace BN254;
 void ECP2_toChar(char W[], ECP2 *P);
 void ECP_toChar(char W[], ECP *P);
 int dec_fromHex(char hex);
-void FP2_fromBytes(FP2 *x, char *b);
-void FP_fromBytes(FP *x, char *b);
+void BIG_fromChar(BIG *a, char ch[]);
+
 #endif

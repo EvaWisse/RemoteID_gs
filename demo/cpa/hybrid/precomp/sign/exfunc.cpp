@@ -40,7 +40,7 @@ int dec_fromHex(char hex)
 void BIG_fromChar(BIG *a, char ch[])
 {
 	byte i;
-	BIG_zero(*a);
+	*a[0] = 0;
   for (i = 0 ; i < MODBYTES_B256_28 * 2 ; i++)
   {
     BIG_fshl(*a, 4);

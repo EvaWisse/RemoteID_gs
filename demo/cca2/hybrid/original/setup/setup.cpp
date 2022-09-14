@@ -2,8 +2,10 @@
 
 int main()
 {
+  printf("Start setup phase\n");
   if(setup()) return EXIT_FAILURE;
   if(join()) return EXIT_FAILURE;
+  if(toFile()) return EXIT_FAILURE;
   if(toHeader()) return EXIT_FAILURE;
   return EXIT_SUCCESS;
 }
@@ -28,7 +30,6 @@ int join()
   if(join_part1()) return EXIT_FAILURE;
   if(join_ttp()) return EXIT_FAILURE;
   if(join_part2()) return EXIT_FAILURE;
-  
   return EXIT_SUCCESS;
 }
 
@@ -152,6 +153,29 @@ int join_part2()
   return EXIT_SUCCESS;
 }
 
+int toFile()
+{
+  FILE *fp = fopen("demo/cca2/hybrid/original/verify_open/group_info.txt", "w");
+  if(!fp)
+  {
+    printf("\tERROR, could not create \"group_info.txt\"\n");
+    return EXIT_FAILURE;
+  }
+  BIG_toFile(shared.spseq_bg.p, fp);
+  ECP_toFile(shared.spseq_bg.P, fp);
+  ECP2_toFile(shared.spseq_bg.P_hat, fp);
+  ECP2_toFile(shared.spseq_pk[0], fp);
+  ECP2_toFile(shared.spseq_pk[1], fp);
+  OCT_toFile(ttp.reg.C.V, fp);
+  OCT_toFile(ttp.reg.C.C, fp);
+  OCT_toFile(ttp.reg.C.T, fp);
+  OCT_toFile(shared.pke_param.P1, fp);
+  OCT_toFile(shared.pke_param.P2, fp);
+  OCT_toFile(ttp.pke_sk.S, fp);
+  fclose(fp);
+  return EXIT_SUCCESS;
+}
+
 int toHeader()
 {
   FILE *fp = fopen("demo/cca2/hybrid/original/sign/drone_const.h", "w");
@@ -162,17 +186,88 @@ int toHeader()
     return EXIT_FAILURE;
   }
   fprintf(fp, "#include\"exfunc.h\"\n#ifndef CONST_ECP_UAS_H\n#define CONST_ECP_UAS_H\n");
-  fprintf(fp, "char ch_m1[] =\"");
-  ECP_toheader(drone.m1, fp);
-  fprintf(fp, "\";\nchar ch_m2[] =\"");
-  ECP_toheader(drone.m2, fp);
-  fprintf(fp, "\";\nchar ch_Y[] =\"");
-  ECP_toheader(shared_setup.spseq_sig.Y, fp);
-  fprintf(fp, "\";\nchar ch_Z[] =\"");
-  ECP_toheader(shared_setup.spseq_sig.Z, fp);
-  fprintf(fp, "\";\nchar ch_Y_hat[] =\"");
-  ECP2_toheader(shared_setup.spseq_sig.Y_hat, fp);
-  fprintf(fp, "\";\n#endif\n");
+  fprintf(fp, "BIG m1_h[3] ={{");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.m1.x.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}, {");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.m1.y.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}, {");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.m1.z.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}};\n");
+
+  fprintf(fp, "BIG m2_h[3] ={{");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.m2.x.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}, {");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.m2.y.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}, {");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.m2.z.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}};\n");
+
+  fprintf(fp, "BIG Y_h[3] ={{");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y.x.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}, {");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y.y.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}, {");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y.z.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}};\n");
+
+  fprintf(fp, "BIG Z_h[3] ={{");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Z.x.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}, {");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Z.y.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}, {");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Z.z.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}};\n");
+
+  fprintf(fp, "BIG Y_hat_ha[3] ={{");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y_hat.x.a.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}, {");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y_hat.y.a.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}, {");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y_hat.z.a.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}};\n");
+
+  fprintf(fp, "BIG Y_hat_hb[3] ={{");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y_hat.x.b.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}, {");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y_hat.y.b.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}, {");
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y_hat.z.b.g[i]);
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "}};\n");
+
+  fprintf(fp, "const sign32 xesa[3]= ");
+  fprintf(fp, "{%#04x, %#04x, %#04x};\n", shared_setup.spseq_sig.Y_hat.x.a.XES, shared_setup.spseq_sig.Y_hat.y.a.XES, shared_setup.spseq_sig.Y_hat.z.a.XES );
+  fprintf(fp, "const sign32 xesb[3]= ");
+  fprintf(fp, "{%#04x, %#04x, %#04x};\n", shared_setup.spseq_sig.Y_hat.x.b.XES, shared_setup.spseq_sig.Y_hat.y.b.XES, shared_setup.spseq_sig.Y_hat.z.b.XES );
+
+  fprintf(fp, "const sign32 Z_xes[3]= ");
+  fprintf(fp, "{%#04x, %#04x, %#04x};\n", shared_setup.spseq_sig.Z.x.XES, shared_setup.spseq_sig.Z.y.XES, shared_setup.spseq_sig.Z.z.XES);
+  fprintf(fp, "const sign32 Y_xes[3]= ");
+  fprintf(fp, "{%#04x, %#04x, %#04x};\n", shared_setup.spseq_sig.Y.x.XES, shared_setup.spseq_sig.Y.y.XES, shared_setup.spseq_sig.Y.z.XES);
+
+
+  fprintf(fp, "const sign32 m1_xes[3]= ");
+  fprintf(fp, "{%#04x, %#04x, %#04x};\n", drone.m1.x.XES, drone.m1.y.XES, drone.m1.z.XES);
+  fprintf(fp, "const sign32 m2_xes[3]= ");
+  fprintf(fp, "{%#04x, %#04x, %#04x};\n", drone.m2.x.XES, drone.m2.y.XES, drone.m2.z.XES);
+  fprintf(fp, "#endif\n");
   fclose(fp);
   return EXIT_SUCCESS;
 }
