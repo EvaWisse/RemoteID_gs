@@ -1,0 +1,218 @@
+(************************* Channel *************************)
+free ch: channel. (* public channel *)
+free ttp_ch: channel [private]. (* private channel between ttp and setup server *)
+free ua_ch: channel [private]. (* private channel between UA and setup server *)
+
+(************************* Types *************************)
+type spseq_pkey.
+type spseq_skey [private].
+type spseq_signature.
+type spseq_message.
+type spseq_bg.
+
+type pke_pkey.
+type pke_skey [private].
+type pke_parameter.
+
+type point.
+type nizk_proof.
+
+type ds_pkey.
+type ds_skey.
+type ds_signature.
+
+type gsk.
+
+(************************* Constructors *************************)
+(* sps-eq functions *)
+fun create_spseq_message(point, point): spseq_message.
+fun spseq_verify(spseq_message, spseq_signature, spseq_pkey): spseq_message.
+fun spseq_sign(spseq_message, spseq_skey): spseq_signature.
+fun ChgRep_message(spseq_message, bitstring, gsk): spseq_message.
+fun ChgRep_signature(spseq_signature, bitstring, gsk): spseq_signature.
+
+(* pke functions *)
+fun pke_enc(point, pke_pkey, pke_parameter): bitstring.
+reduc forall pke_m:point, pke_pk:pke_pkey, pke_par:pke_parameter, pke_sk:pke_skey; pke_dec(pke_enc(pke_m, pke_pk, pke_par), pke_par, pke_sk) = pke_m.
+
+(* nizk function *)
+fun nizk_hash(point, point, point):bitstring.
+fun nizk_calc_r(bitstring, bitstring, bitstring):bitstring.
+fun nizk_calc_Vp(bitstring, point): point.
+fun nizk_calc_Vv(bitstring, bitstring, point, point):point.
+fun nizk_cal_point(bitstring, point):point.
+
+(* ds functions *)
+fun ds_sign(bitstring, ds_skey): ds_signature.
+reduc forall ds_m:bitstring, ds_sk:ds_skey, ds_pk:ds_pkey; ds_verify(ds_sign(ds_m, ds_sk), ds_m, ds_pk) = ds_m.
+
+(* other *)
+fun create_point_mul(bitstring, spseq_bg): point.
+
+(* Signing functions *)
+fun calc_N(bitstring, spseq_bg):point.
+fun sign_hash(point, spseq_signature, spseq_message): bitstring.
+fun calc_z(bitstring, bitstring, bitstring):bitstring.
+
+(* Verify functions *)
+fun calc_N_hat(bitstring, bitstring, spseq_bg, spseq_message):point.
+fun calc_M1_hat(bitstring, bitstring, spseq_signature, point):point.
+fun calc_M2_hat(bitstring, bitstring, bitstring, spseq_signature, point):point.
+
+(* Open fuctions *)
+fun pairing_lhs(spseq_bg, spseq_signature):point.
+fun pairing_rhs(point, spseq_signature):point.
+
+(************************* Events *************************)
+event sig_verified.
+event sig_open. 
+event send_message.
+
+(************************* Queries *************************)
+(* Authenticty query *)
+  (* sender authenticy *)
+  query event(sig_verified) ==> event(send_message).
+  query event(sig_open) ==> event(send_message).
+
+(* impersoniation resistance *)
+  (* the attacker is not in possession of the value *)
+  free secret_gsk:gsk [private].
+  query attacker(secret_gsk).
+
+  (* strong secrecy/non-interference gsk --> attacker can not deduce any information about the value of gsk *)
+  noninterf secret_gsk.
+
+(************************* Processes UA *************************)
+let UA =
+  (* SETUP PHASE *)
+    in(ua_ch, (bg:spseq_bg, spseq_pk:spseq_pkey));
+    in(ua_ch, (pke_pk:pke_pkey, pke_param:pke_parameter));
+    in(ua_ch, ds_sk:ds_skey);
+
+  (* JOIN PHASE *)
+    new q:bitstring;
+    new r:bitstring;
+    new Q:point;
+    new U:point;
+    let rP_hat = create_point_mul(r,bg) in
+    (* pke encrypt rP_hat *)
+    let C = pke_enc(rP_hat, pke_pk, pke_param) in
+
+    (* ds sign the encrypted rP_hat *)
+    let ds_sig = ds_sign(C, ds_sk) in
+
+    (* nizk gen p and v *)
+    let A = create_point_mul(C, bg) in
+    new p1:bitstring;
+    new v1:bitstring;
+    let Vp1 = nizk_calc_Vp(v1, Q) in
+    let cp1 = nizk_hash(Q, Vp1, A) in
+    let rp1 = nizk_calc_r(v1, r, cp1) in
+    out(ch, (U, Q, C, ds_sig, cp1, rp1));
+
+    (* receive ttp response *)
+    in(ch, spseq_sig:spseq_signature);
+  
+  (* SIGNING PHASE *)
+    (* randomize spseq sig *)
+    new inv_q:bitstring;
+    let mes = create_spseq_message(U,Q) in
+    let rand_mes = ChgRep_message(mes, inv_q, secret_gsk) in
+    let rand_sig = ChgRep_signature(spseq_sig, inv_q, secret_gsk) in
+    let ver_spseq = spseq_verify(mes, spseq_sig, spseq_pk) in
+    
+    (* signing *)
+    new u:bitstring;
+    new rho:bitstring;
+    new v:bitstring;
+    new n:bitstring;
+    let mes_drone = ChgRep_message(rand_mes, rho, secret_gsk) in
+    let sig_drone = ChgRep_signature(rand_sig, rho, secret_gsk) in
+
+    (* calculate hash components *)
+    let N = calc_N(v, bg) in
+
+    (* hash c(N,M1,M2, sig, m) *)
+    let c = sign_hash(N, sig_drone, mes_drone) in
+    let z = calc_z(v, c, rho) in
+
+    (* send message *)
+    event send_message;
+    out(ch, (mes_drone, sig_drone, c, z)).
+    
+(************************* Processes TTP *************************)
+let observer =
+  (* SETUP PHASE *)
+  (* recieve public param *)
+  in(ch, (bg:spseq_bg, spseq_pk:spseq_pkey));
+
+  (* OPEN PHASE *)
+  (* receive message *)
+  in(ch, (mes:spseq_message, sig:spseq_signature, c:bitstring, z:bitstring));
+  let ver_spseq = spseq_verify(mes, sig, spseq_pk) in
+  let N_hat = calc_N_hat(z, c, bg, mes) in
+  let c_check = sign_hash(N_hat, sig, mes) in
+  if c_check = c then event sig_verified.
+
+(************************* Processes TTP *************************)
+let TTP =
+  (* SETUP PHASE *)
+  (* recieve setup info *)
+  in(ttp_ch, (bg:spseq_bg, spseq_sk:spseq_skey, spseq_pk:spseq_pkey));
+  in(ttp_ch, (pke_sk:pke_skey, pke_param:pke_parameter));
+  in(ttp_ch, ds_pk:ds_pkey);
+ 
+  (* JOIN PHASE *)
+  (* Receive join info *)
+  in(ch, (U:point, Q:point, C:bitstring, ds_sig:ds_signature, cp1:bitstring, rp1:bitstring));
+  (* create spseq sig *)
+  let spseq_mes = create_spseq_message(U,Q) in
+  let spseq_sig = spseq_sign(spseq_mes, spseq_sk) in
+  (* verify nizk *)    
+  let A = create_point_mul(C, bg) in
+  let Vv1 = nizk_calc_Vv(cp1, rp1, A, Q) in
+  let cv1 = nizk_hash(Q, Vv1, A) in
+  (* verify ds *)
+  let C_sig = ds_verify(ds_sig, C, ds_pk) in
+  out(ch, spseq_sig);
+
+  (* VERIFY PHASE *)
+  in(ch, (mes:spseq_message, sig:spseq_signature, c:bitstring, z:bitstring));
+  let ver_spseq = spseq_verify(mes, sig, spseq_pk) in
+  let N_hat = calc_N_hat(z, c, bg, mes) in
+  let c_check = sign_hash(N_hat, sig, mes) in
+  if c_check = c then event sig_verified;
+
+  (* OPEN PHASE *)
+  let R_hat = pke_dec(C, pke_param, pke_sk) in 
+  let lhs = pairing_lhs(bg, sig) in
+  let rhs = pairing_rhs(R_hat, sig) in
+  if rhs = lhs then event sig_open. 
+
+(************************* Processes setup_server *************************)
+let setup_server =
+  (* setup spseq *)
+  new bg:spseq_bg;
+  new spseq_sk:spseq_skey;
+  new spseq_pk:spseq_pkey;
+  out(ua_ch, (bg, spseq_pk));
+  out(ttp_ch, (bg, spseq_sk, spseq_pk));
+
+  (* setup pke *)
+  new pke_sk:pke_skey;
+  new pke_pk:pke_pkey;
+  new pke_param:pke_parameter;
+  out(ua_ch, (pke_pk, pke_param));
+  out(ttp_ch, (pke_sk, pke_param));
+
+  (* setup ds *)
+  new ds_pk:ds_pkey;
+  new ds_sk:ds_skey;
+  out(ua_ch, ds_sk);
+  out(ttp_ch, ds_pk);
+
+  (* publish public info *)
+  out(ch, (bg, spseq_pk)).
+
+process
+  ( (setup_server) | (!TTP) | (!UA) | (!observer))
