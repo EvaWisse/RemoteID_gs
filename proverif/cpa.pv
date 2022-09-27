@@ -30,6 +30,7 @@ fun spseq_verify(spseq_message, spseq_signature, spseq_pkey): spseq_message.
 fun spseq_sign(spseq_message, spseq_skey): spseq_signature.
 fun ChgRep_message(spseq_message, bitstring, gsk): spseq_message.
 fun ChgRep_signature(spseq_signature, bitstring, gsk): spseq_signature.
+fun pk(spseq_skey): spseq_pkey.
 
 (* pke functions *)
 fun pke_enc(point, pke_pkey, pke_parameter): bitstring.
@@ -64,15 +65,15 @@ fun pairing_lhs(spseq_bg, spseq_signature):point.
 fun pairing_rhs(point, spseq_signature):point.
 
 (************************* Events *************************)
-event sig_verified.
-event sig_open. 
-event send_message.
+event sig_verified(spseq_pkey).
+event sig_open(spseq_pkey). 
+event send_message(spseq_pkey).
 
 (************************* Queries *************************)
 (* Authenticty query *)
   (* sender authenticy *)
-  query event(sig_verified) ==> event(send_message).
-  query event(sig_open) ==> event(send_message).
+  query spseq_pk:spseq_pkey; event(sig_verified(spseq_pk)) ==> event(send_message(spseq_pk)).
+  query spseq_pk:spseq_pkey; event(sig_open(spseq_pk)) ==> event(send_message(spseq_pk)).
 
 (* impersoniation resistance *)
   (* the attacker is not in possession of the value *)
@@ -137,7 +138,7 @@ let UA =
     let z = calc_z(v, c, rho) in
 
     (* send message *)
-    event send_message;
+    event send_message(spseq_pk);
     out(ch, (mes_drone, sig_drone, c, z)).
     
 (************************* Processes TTP *************************)
@@ -152,7 +153,7 @@ let observer =
   let ver_spseq = spseq_verify(mes, sig, spseq_pk) in
   let N_hat = calc_N_hat(z, c, bg, mes) in
   let c_check = sign_hash(N_hat, sig, mes) in
-  if c_check = c then event sig_verified.
+  if c_check = c then event sig_verified(spseq_pk).
 
 (************************* Processes TTP *************************)
 let TTP =
@@ -181,20 +182,20 @@ let TTP =
   let ver_spseq = spseq_verify(mes, sig, spseq_pk) in
   let N_hat = calc_N_hat(z, c, bg, mes) in
   let c_check = sign_hash(N_hat, sig, mes) in
-  if c_check = c then event sig_verified;
+  if c_check = c then event sig_verified(spseq_pk);
 
   (* OPEN PHASE *)
   let R_hat = pke_dec(C, pke_param, pke_sk) in 
   let lhs = pairing_lhs(bg, sig) in
   let rhs = pairing_rhs(R_hat, sig) in
-  if rhs = lhs then event sig_open. 
+  if rhs = lhs then event sig_open(spseq_pk). 
 
 (************************* Processes setup_server *************************)
 let setup_server =
   (* setup spseq *)
   new bg:spseq_bg;
   new spseq_sk:spseq_skey;
-  new spseq_pk:spseq_pkey;
+  let spseq_pk = pk(spseq_sk) in
   out(ua_ch, (bg, spseq_pk));
   out(ttp_ch, (bg, spseq_sk, spseq_pk));
 
