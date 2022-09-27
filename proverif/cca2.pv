@@ -69,15 +69,15 @@ fun pairing_lhs(spseq_bg, spseq_signature):point.
 fun pairing_rhs(point, spseq_signature):point.
 
 (************************* Events *************************)
-event sig_verified.
-event sig_open. 
-event send_message.
+event sig_verified(spseq_pkey).
+event sig_open(spseq_pkey). 
+event send_message(spseq_pkey).
 
 (************************* Queries *************************)
 (* Authenticty query *)
   (* sender authenticy *)
-  query event(sig_verified) ==> event(send_message).
-  query event(sig_open) ==> event(sig_verified).
+  query spseq_pk:spseq_pkey; event(sig_verified(spseq_pk)) ==> event(send_message(spseq_pk)).
+  query spseq_pk:spseq_pkey; event(sig_open(spseq_pk)) ==> event(send_message(spseq_pk)).
 
 (* impersoniation resistance *)
   (* the attacker is not in possession of the value *)
@@ -147,7 +147,7 @@ let UA =
     let z2 = calc_z2(n, c, u) in
 
     (* send message *)
-    event send_message;
+    event send_message(spseq_pk);
     out(ch, (mes_drone, sig_drone, C1, C2, c, z1, z2)).
     
 (************************* Processes TTP *************************)
@@ -164,7 +164,7 @@ let observer =
   let M1_hat = calc_M1_hat(z2, c, sig, C1) in
   let M2_hat = calc_M2_hat(z1, z2, c, sig, C2) in
   let c_check = sign_hash(N_hat, M1_hat, M2_hat, sig, mes) in
-  if c_check = c then event sig_verified.
+  if c_check = c then event sig_verified(spseq_pk).
 
 (************************* Processes TTP *************************)
 let TTP =
@@ -195,13 +195,13 @@ let TTP =
   let M1_hat = calc_M1_hat(z2, c, sig, C1) in
   let M2_hat = calc_M2_hat(z1, z2, c, sig, C2) in
   let c_check = sign_hash(N_hat, M1_hat, M2_hat, sig, mes) in
-  if c_check = c then event sig_verified;
+  if c_check = c then event sig_verified(spseq_pk);
 
   (* OPEN PHASE *)
   let R_hat = pke_dec(C, pke_param, pke_sk) in 
   let lhs = pairing_lhs(bg, sig) in
   let rhs = pairing_rhs(R_hat, sig) in
-  if rhs = lhs then event sig_open. 
+  if rhs = lhs then event sig_open(spseq_pk). 
 
 (************************* Processes setup_server *************************)
 let setup_server =
