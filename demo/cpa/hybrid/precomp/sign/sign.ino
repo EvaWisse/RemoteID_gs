@@ -1,44 +1,63 @@
 #include "exfunc.h"
 #include "drone_const.h"
-#define FLIGHT_TIME 10 // sec
+#define FLIGHT_TIME 10
 
-const int port = 9000;
-IPAddress broadcast = IPAddress(192, 168, 244, 255);
+//set up to connect to an existing network (e.g. mobile hotspot from laptop that will run the python code)
 const char* ssid = "espcopter";
 const char* password = "password";
 
-int long StartTime;
+WiFiUDP Udp;
+unsigned int localUdpPort = 4210;  //  port to listen on
+char incomingPacket[255];  // buffer for incoming packets
+
 BIG p, big, c;
 ECP ecp;
 ECP2 ecp2;
-WiFiUDP Udp;
-byte i;
-char m[36];
 int rho_index, v_index, y_index;
-hash256 sh256;
+char m[32];
+byte i;
+char ch[4 * ecp_size + ecp2_size + m_size + 2 * big_size + 1];
+hash256 sha256;
+char t[32];
 
-void setup() {
-  delay(10000);
-  ESP.wdtEnable(WDTO_15MS);
+void setup()
+{
   Serial.begin(115200);
-
-  BIG_rcopy(p, CURVE_Order);
-  memset(m, 0, 36);
-
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED)
-  {
+
+  // Wait for connection
+  while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
+  Serial.println("Connected to wifi");
+  Udp.begin(localUdpPort);
+  Serial.printf("Now listening at IP %s, UDP port %d\n", WiFi.localIP().toString().c_str(), localUdpPort);
+
+  // we recv one packet from the remote so we can know its IP and port
+  bool readPacket = false;
+  while (!readPacket) {
+    int packetSize = Udp.parsePacket();
+    if (packetSize)
+    {
+      // receive incoming UDP packets
+      Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort());
+      int len = Udp.read(incomingPacket, 255);
+      if (len > 0)
+      {
+        incomingPacket[len] = 0;
+      }
+      Serial.printf("UDP packet contents: %s\n", incomingPacket);
+      readPacket = true;
+    }
+  }
+  BIG_rcopy(p, CURVE_Order);
+  memset(m, 0, 36);
 }
 
-void loop() {
-  StartTime = micros();
-  HASH256_init(&sh256);
-  char *bc;
-  bc = (char*) malloc((4 * 129) + 257 + 32 + 65);
-  ESP.wdtFeed();
+void loop()
+{
+  HASH256_init(&sha256);
 
   rho_index = random(FLIGHT_TIME);
   v_index = random(FLIGHT_TIME);
@@ -46,7 +65,7 @@ void loop() {
   ESP.wdtFeed();
 
   // m1
-  for (int i = 0; i < NLEN_B256_28; i++)
+  for (i = 0; i < NLEN_B256_28; i++)
   {
     ecp.x.g[i] = m1_x[rho_index][i];
     ecp.y.g[i] = m1_y[rho_index][i];
@@ -55,12 +74,12 @@ void loop() {
   ecp.x.XES = m1_xes[rho_index][0];
   ecp.y.XES = m1_xes[rho_index][1];
   ecp.z.XES = m1_xes[rho_index][2];
-  ECP_toChar(bc, &ecp);
-  for (i = 0; i < ecp_size; i++) HASH256_process(&sh256, bc[i]);
+  ECP_toChar(ch, &ecp);
+  for (i = 0; i < ecp_size; i++) HASH256_process(&sha256, ch[i]);
   ESP.wdtFeed();
 
   // m2
-  for (int i = 0; i < NLEN_B256_28; i++)
+  for (i = 0; i < NLEN_B256_28; i++)
   {
     ecp.x.g[i] = m2_x[rho_index][i];
     ecp.y.g[i] = m2_y[rho_index][i];
@@ -69,12 +88,12 @@ void loop() {
   ecp.x.XES = m2_xes[rho_index][0];
   ecp.y.XES = m2_xes[rho_index][1];
   ecp.z.XES = m2_xes[rho_index][2];
-  ECP_toChar(bc + ecp_size, &ecp);
-  for (i = 0; i < ecp_size; i++) HASH256_process(&sh256, bc[i + ecp_size]);
+  ECP_toChar(ch + ecp_size, &ecp);
+  for (i = 0; i < ecp_size; i++) HASH256_process(&sha256, ch[i + ecp_size]);
   ESP.wdtFeed();
 
   // Y
-  for (int i = 0; i < NLEN_B256_28; i++)
+  for (i = 0; i < NLEN_B256_28; i++)
   {
     ecp.x.g[i] = Y_x[y_index][i];
     ecp.y.g[i] = Y_y[y_index][i];
@@ -83,12 +102,12 @@ void loop() {
   ecp.x.XES = Y_xes[y_index][0];
   ecp.y.XES = Y_xes[y_index][1];
   ecp.z.XES = Y_xes[y_index][2];
-  ECP_toChar(bc + 2 * ecp_size, &ecp);
-  for (i = 0; i < ecp_size; i++) HASH256_process(&sh256, bc[i + (2 * ecp_size)]);
+  ECP_toChar(ch + 2 * ecp_size, &ecp);
+  for (i = 0; i < ecp_size; i++) HASH256_process(&sha256, ch[i + 2 * ecp_size]);
   ESP.wdtFeed();
 
   // Z
-  for (int i = 0; i < NLEN_B256_28; i++)
+  for (i = 0; i < NLEN_B256_28; i++)
   {
     ecp.x.g[i] = Z_x[rho_index][y_index][i];
     ecp.y.g[i] = Z_y[rho_index][y_index][i];
@@ -97,12 +116,12 @@ void loop() {
   ecp.x.XES = Z_xes[rho_index][y_index][0];
   ecp.y.XES = Z_xes[rho_index][y_index][1];
   ecp.z.XES = Z_xes[rho_index][y_index][2];
-  ECP_toChar(bc + 3 * ecp_size, &ecp);
-  for (i = 0; i < ecp_size; i++) HASH256_process(&sh256, bc[i + (3 * ecp_size)]);
+  ECP_toChar(ch + 3 * ecp_size, &ecp);
+  for (i = 0; i < ecp_size; i++) HASH256_process(&sha256, ch[i + 3 * ecp_size]);
   ESP.wdtFeed();
 
   // Y_hat
-  for (int i = 0; i < NLEN_B256_28; i++)
+  for ( i = 0; i < NLEN_B256_28; i++)
   {
     ecp2.x.a.g[i] = Y_hat_xa[y_index][i];
     ecp2.y.a.g[i] = Y_hat_ya[y_index][i];
@@ -119,49 +138,49 @@ void loop() {
   ecp2.x.b.XES = xesb[y_index][0];
   ecp2.y.b.XES = xesb[y_index][1];
   ecp2.z.b.XES = xesb[y_index][2];
-  ECP2_toChar(bc + 4 * ecp_size, &ecp2);
-  for (i = 0; i < ecp2_size; i++) HASH256_process(&sh256, bc[(4 * ecp_size) + i]);
+  ECP2_toChar(ch + 4 * ecp_size, &ecp2);
+  for (i = 0; i < ecp2_size; i++) HASH256_process(&sha256, ch[i + 4 * ecp_size]);
   ESP.wdtFeed();
 
-  // N
-  char *ch;
-  ch = (char*) malloc(sizeof(char) * ecp_size + 1);
-  for (int i = 0; i < NLEN_B256_28; i++)
-  {
-    ecp.x.g[i] = N_x[v_index][i];
-    ecp.y.g[i] = N_y[v_index][i];
-    ecp.z.g[i] = N_z[v_index][i];
-  }
-  ecp.x.XES = N_xes[v_index][0];
-  ecp.y.XES = N_xes[v_index][1];
-  ecp.z.XES = N_xes[v_index][2];
-  ECP_toChar(ch, &ecp);
-  for (i = 0; i < ecp_size; i++) HASH256_process(&sh256, ch[i]);
-  ESP.wdtFeed();
+ // N
+ for (int i = 0; i < NLEN_B256_28; i++)
+ {
+   ecp.x.g[i] = N_x[v_index][i];
+   ecp.y.g[i] = N_y[v_index][i];
+   ecp.z.g[i] = N_z[v_index][i];
+ }
+ ecp.x.XES = N_xes[v_index][0];
+ ecp.y.XES = N_xes[v_index][1];
+ ecp.z.XES = N_xes[v_index][2];
+ ECP_toChar(t, &ecp);
+ for (i = 0; i < ecp_size; i++) HASH256_process(&sha256, t[i]);
+ ESP.wdtFeed();
 
-  // message
-  for (i = 0; i < 35; i++) HASH256_process(&sh256, m[i]);
-  for (i = 0; i < 35; i++) bc[((4 * ecp_size) + ecp2_size + 32 + big_size) + i] = m[i];
-  free(ch);
-  ESP.wdtFeed();
+ // m
+ for (i = 0; i < m_size; i++) HASH256_process(&sha256, m[i]);
+ //  for (i = 0; i < m_size; i++) ch[i + 4 * ecp_size + ecp2_size] = m[i];
+ ESP.wdtFeed();
 
-  // c
-  HASH256_hash(&sh256, bc + (4 * ecp_size) + (ecp2_size));
-  BIG_fromBytesLen(c, bc + (4 * ecp_size) + (ecp2_size), 32);
-  ESP.wdtFeed();
+ // c
+ HASH256_hash(&sha256, ch + 4 * ecp_size + ecp2_size + m_size);
+ ESP.wdtFeed();
 
-  // z1
-  BIG_modmul(big, c, rho[rho_index], p); // c * rho mod p
-  BIG_modadd(big, big, v[v_index], p); // v + c * rho
-  BIG_toBytes(bc + (4 * ecp_size) + (ecp2_size) + 32, big);
-  ESP.wdtFeed();
+ BIG_fromBytesLen(c, ch + 4 * ecp_size + ecp2_size + m_size, 32);
+ ESP.wdtFeed();
 
-  // create udp packet
-  Udp.beginPacketMulticast(broadcast, port, WiFi.localIP());
-  Udp.write(bc, (4 * ecp_size) + ecp2_size + 32 + big_size + 36);
+ // z
+ BIG_modmul(big, c, rho[rho_index], p); // c * rho mod p
+ BIG_modadd(big, big, v[v_index], p); // v + c * rho
+ BIG_toBytes(ch + 4 * ecp_size + ecp2_size + m_size + big_size, big);
+ ESP.wdtFeed();
+
+  Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
+  Udp.write(ch, 4 * ecp_size + ecp2_size + m_size + 2 * big_size);
   Udp.endPacket();
-  free(bc);
   ESP.wdtFeed();
 
-  Serial.println(micros() - StartTime);
+  memset(ch, 0, 4 * ecp_size + ecp2_size + 3 * big_size + 1);
+  memset(t, 0, 32);
+  ESP.wdtFeed();
+  delay(1000);
 }
