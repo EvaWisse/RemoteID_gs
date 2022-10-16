@@ -1,12 +1,12 @@
 #ifndef CPA_DESKTOP_H_
 #define CPA_DESKTOP_H_
 
-#include "../../../../include/miracl.h"
-#include "../../../../include/ds.h"
-#include "../../../../include/nizk.h"
-#include "../../../../include/pke.h"
-#include "../../../../include/spseq.h"
-#include "../../../../include/utils.h"
+#include "../include/miracl.h"
+#include "../include/ds.h"
+#include "../include/nizk.h"
+#include "../include/pke.h"
+#include "../include/spseq.h"
+#include "../include/utils.h"
 
 typedef struct reg_struct
 {
