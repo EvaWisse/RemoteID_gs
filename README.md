@@ -15,7 +15,7 @@ The scheme uses a
     - `hybrid`: setup, verify, open are performed on dekstop while sign phase is performed on drone.
       - `orginal`: 
       - `pre-comp`: 
-* `include`: The headers required to run the demo.
+* `include`: The headers required to run the demo and desktop version.
 * `proverif`: A proverif proof proving that this satisfies the requirements set by the FAA.
 * `src`: Code of the schemes used (nizk, ds, pke)
 * `desktop`: Desktop version
