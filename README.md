@@ -1,4 +1,4 @@
-# remote_id_gs 
+# A2RID
 This repository contains a implementation of RemoteID requirments based on the group signature scheme introduced by Derler et al. [^1]
 The scheme uses a
 * NIZK scheme --> Schnorr's nizk protocol[^2]
