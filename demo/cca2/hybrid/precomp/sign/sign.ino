@@ -30,7 +30,7 @@ void setup() {
     Serial.print(".");
   }
 
-  memset(m, 0, 36);
+  memset(m, 0, m_size);
   BIG_rcopy(p, CURVE_Order);
 }
 
@@ -185,14 +185,14 @@ void loop() {
   ESP.wdtFeed();
 
   // hash message
-  for (i = 0; i < 35; i++) HASH256_process(&sh256, m[i]);
-  for (i = 0; i < 35; i++) bc[i + (4 * ecp_size) + (3 * ecp2_size) + 32 + (2 * big_size)] = m[i];
+  for (i = 0; i < m_size; i++) HASH256_process(&sh256, m[i]);
+  for (i = 0; i < m_size; i++) bc[i + (4 * ecp_size) + ecp2_size] = m[i];
   free(ch);
   ESP.wdtFeed();
 
   // c
-  HASH256_hash(&sh256, bc + (4 * ecp_size) + (3 * ecp2_size));
-  BIG_fromBytesLen(c, bc + (4 * ecp_size) + (3 * ecp2_size), 32);
+  HASH256_hash(&sh256, bc + (4 * ecp_size) + ecp2_size + m_size);
+  BIG_fromBytesLen(c, bc + (4 * ecp_size) + ecp2_size + m_size, 32);
   ESP.wdtFeed();
 
   // C2
@@ -213,7 +213,7 @@ void loop() {
   ecp2.x.b.XES = C2_xesb[rho_index][u_index][0];
   ecp2.y.b.XES = C2_xesb[rho_index][u_index][1];
   ecp2.z.b.XES = C2_xesb[rho_index][u_index][2];
-  ECP2_toChar(bc + (4 * ecp_size) + (ecp2_size) + 32, &ecp2);
+  ECP2_toChar(bc + (4 * ecp_size) + ecp2_size + m_size + big_size, &ecp2);
   ESP.wdtFeed();
 
   // C1
@@ -234,24 +234,24 @@ void loop() {
   ecp2.x.b.XES = C1_xesb[y_index][u_index][0];
   ecp2.y.b.XES = C1_xesb[y_index][u_index][1];
   ecp2.z.b.XES = C1_xesb[y_index][u_index][2];
-  ECP2_toChar(bc + (4 * ecp_size) + (2 * ecp2_size) + 32, &ecp2);
+  ECP2_toChar(bc + (4 * ecp_size) + (2 * ecp2_size) + m_size + big_size, &ecp2);
   ESP.wdtFeed();
 
   // z1
   BIG_modmul(big, c, rho[rho_index], p); // c * rho
   BIG_modadd(big, big, v[v_index], p); // v + c * rho
-  BIG_toBytes(bc + (4 * ecp_size) + (3 * ecp2_size) + 32, big);
+  BIG_toBytes(bc + (4 * ecp_size) + (2 * ecp2_size) + m_size + 2 * big_size, big);
   ESP.wdtFeed();
 
   // z2
   BIG_modmul(big, c, u[u_index], p); // c * u
   BIG_modadd(big, big, n[n_index], p); // n + c * u
-  BIG_toBytes(bc + (4 * ecp_size) + (3 * ecp2_size) + 32 + big_size, big);
+  BIG_toBytes(bc + (4 * ecp_size) + (2 * ecp2_size) + m_size + 3 * big_size, big);
   ESP.wdtFeed();
 
   // create udp packet
   Udp.beginPacketMulticast(broadcast, port, WiFi.localIP());
-  Udp.write(bc, (4 * ecp_size) + (3 * ecp2_size) + 32 + (2 * big_size) + 36);
+  Udp.write(bc, (4 * ecp_size) + (2 * ecp2_size) + m_size + 3 * big_size);
   Udp.endPacket();
   ESP.wdtFeed();
 
