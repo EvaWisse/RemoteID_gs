@@ -116,7 +116,7 @@ void BIG_toFile(BIG a, FILE *fp)
 		BIG_shr(b, i * 4);
 		fprintf(fp, "%01x", (unsigned int) b[0] & 15);
 	}
-	// fprintf(fp, "\n");
+	fprintf(fp, "\n");
 }
 
 void FP2_toFile(FP2 fp2, FILE *fp)
@@ -162,9 +162,8 @@ void ECP2_toFile(ECP2 ecp2, FILE *fp)
 
 void OCT_toFile(octet oct, FILE *fp)
 {
-  putw(oct.len, fp);
+  fprintf(fp, "%d\n", oct.len);
   fwrite(oct.val, 1, oct.len, fp);
-  fprintf(fp, "\n");
 }
 
 void BIG_fromFile(FILE *fp, BIG *a)
@@ -179,10 +178,10 @@ void BIG_fromFile(FILE *fp, BIG *a)
 
 void OCT_fromFile(int *len, char *val, FILE *fp)
 {
-  *len = getw(fp);
+  fscanf(fp, "%d", len);
+  fscanf(fp, "\n");
   fread(val, sizeof(char), *len, fp);
 }
-
 
 void ECP_precomp(ECP ecp, FILE *fp)
 {
@@ -225,4 +224,62 @@ void ECP2_precomp(ECP2 ecp2, FILE *fp)
   fprintf(fp, "{0x");
   BIG_toCon(y,  fp);
   fprintf(fp,"}, ");
+}
+
+void ECP2_fromFile(FILE *fp, ECP2 *ecp2)
+{
+  BIG big_r, big_i;
+  FP2 fp2_x, fp2_y;
+  byte i;
+
+  char *ch;
+	ch = (char*) malloc(sizeof(char) * MODBYTES_B256_28 * 2 + 2);
+	memset(ch, 0, MODBYTES_B256_28 * 2 + 2);
+  fgets(ch, 100, (FILE*)fp);
+  BIG_fromChar(&big_r, ch);
+
+  memset(ch, 0, MODBYTES_B256_28 * 2 + 2);
+  fgets(ch, MODBYTES_B256_28 * 2 + 2, (FILE*)fp);
+  BIG_fromChar(&big_i, ch);
+  
+  FP_nres(&(fp2_x.a), big_r);
+  FP_nres(&(fp2_x.b), big_i);
+
+	for (i = 0; i < NLEN_B256_28; i++) 
+  {
+    big_r[i] = 0;
+    big_i[i] = 0;
+  }
+
+  memset(ch, 0, MODBYTES_B256_28 * 2 + 2);
+  fgets(ch, 100, (FILE*)fp);
+  BIG_fromChar(&big_r, ch);
+
+  memset(ch, 0, MODBYTES_B256_28 * 2 + 2);
+  fgets(ch, MODBYTES_B256_28 * 2 + 2, (FILE*)fp);
+  BIG_fromChar(&big_i, ch);
+
+  FP_nres(&(fp2_y.a), big_r);
+  FP_nres(&(fp2_y.b), big_i);
+
+  ECP2_set(ecp2, &fp2_x, &fp2_y);
+  free(ch);
+}
+
+void ECP_fromFile(FILE *fp, ECP *ecp)
+{
+  BIG big_x, big_y;
+  char *ch;
+	ch = (char*) malloc(sizeof(char) * MODBYTES_B256_28 * 2 + 2);
+	
+  memset(ch, 0, MODBYTES_B256_28 * 2 + 2);
+  fgets(ch, MODBYTES_B256_28 * 2 + 2, (FILE*)fp);
+  BIG_fromChar(&big_x, ch);
+  
+  memset(ch, 0, MODBYTES_B256_28 * 2 + 2);
+  fgets(ch, MODBYTES_B256_28 * 2 + 2, (FILE*)fp);
+  BIG_fromChar(&big_y, ch);
+
+  ECP_set(ecp, big_x, big_y);
+  free(ch);
 }
