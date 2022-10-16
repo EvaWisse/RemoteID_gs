@@ -21,15 +21,14 @@ using namespace core;
 using namespace B256_28;
 using namespace BN254;
 
-#define ecp_size 66
-#define ecp2_size 129
+#define ecp_size 64
+#define ecp2_size 128
 #define big_size 32
+#define m_size 32
 
 void ECP2_toChar(char W[], ECP2 *P);
 void ECP_toChar(char W[], ECP *P);
 int dec_fromHex(char hex);
 void BIG_fromChar(BIG *a, char ch[]);
 
-// void FP2_fromBytes(FP2 *x, char *b);
-// void FP_fromBytes(FP *x, char *b);
 #endif
