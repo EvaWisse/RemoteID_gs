@@ -6,7 +6,7 @@ cca2_desktop:
 	$(CC) $(CFLAGS) src/*cpp  desktop/cca2.cpp $(LIBS) -o cca2_desktop.out
 	
 cpa_desktop:
-	$(CC) $(CFLAGS) src/*cpp  desktop/original/cpa.cpp $(LIBS) -o cpa_desktop.out
+	$(CC) $(CFLAGS) src/*cpp  desktop/cpa.cpp $(LIBS) -o cpa_desktop.out
 
 cpa_hybrid_pre:
 	$(CC) $(CFLAGS) src/*cpp  demo/cpa/hybrid/precomp/setup/setup.cpp  $(LIBS) -o cpa_pre_setup.out
