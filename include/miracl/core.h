@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <inttypes.h>
+#include <stdint.h>
 #include "arch.h"
 
 namespace core {
@@ -91,8 +91,8 @@ typedef hash512 hash384;
 /**
  * @brief SHA3 hash function instance */
 typedef struct {
-    unsign64 length;
-    unsign64 S[5][5];
+    int length;
+    unsign64 S[25];
     int rate, len;
 } sha3;
 
@@ -110,17 +110,6 @@ typedef struct {
 
 #define SHAKE128 16 /**< SHAKE128   hash */
 #define SHAKE256 32 /**< SHAKE256   hash */
-
-
-/* NewHope parameters */
-
-//q= 12289
-
-#define RLWE_PRIME 0x3001	// q in Hex
-#define RLWE_LGN 10			// Degree n=2^LGN
-#define RLWE_ND 0xF7002FFF	// 1/(R-q) mod R
-#define RLWE_ONE 0x2AC8		// R mod q
-#define RLWE_R2MODP 0x1620	// R^2 mod q
 
 /* Symmetric Encryption AES structure */
 
