@@ -6,19 +6,19 @@ The scheme uses a
 * PKE scheme --> ECIES [^4]
 
 ## Directory structure
-* `drone`: An arduino demo application illustrating the CPA and CCA2 version of the RemoteID scheme in different scenarios :
+* `drone`: An Arduino demo application illustrating the CPA and CCA2 version of the RemoteID scheme in different scenarios :
   - `cca2`: cryptographic Adaptive chosen-ciphertext attack secure version
-    -  setup, verify, open are performed on dekstop while sign phase is performed on a drone.
-      - `orginal`: without pre comp.
+    -  setup, verify, open are performed on desktop while sign phase is performed on a drone.
+      - `original`: without pre comp.
       - `pre-comp`: with pre comp.
   - `cpa`: Chosen-plaintext attack secure version
-    -  setup, verify, open are performed on dekstop while sign phase is performed on a drone.
-      - `orginal`: without pre comp.
+    -  setup, verify, open are performed on the desktop while sign phase is performed on a drone.
+      - `original`: without pre comp.
       - `pre-comp`: with pre comp.
 * `include`: The headers required to run the demo and desktop version.
 * `proverif`: A proverif proof proving that this satisfies the requirements set by the FAA.
 * `src`: Code of the schemes used (nizk, ds, pke)
-* `desktop`: Desktop version of the application moslty used to show correctness
+* `desktop`: Desktop version of the application mostly used to show correctness
 
 ## How to Use
 To clone and run the desktop version type:
@@ -43,10 +43,10 @@ make cpa_desktop
 # run
 ./cpa_desktop
 ```
-To use the drone application, download the repo as explained before. Select in ```demo/verify_open.cpp``` the use pre-computions by setting ```#define PRE_COMP```.
+To use the drone application, download the repo as explained before. Select in ```demo/verify_open.cpp``` the use pre-computations by setting ```#define PRE_COMP```.
 If commented out no pre-computations are performed.
-Select in ```drone/verify_open.cpp``` which version of signature is present in the broadcast ```#define CCA2_SIGNATURE``` indicates the use of CCA2 anonimous signatures. 
-If commented out the use of CPA anonimous signatures is assumed.  After the design decisons are performed to run the program one must type: 
+Select in ```drone/verify_open.cpp``` which version of signature is present in the broadcast ```#define CCA2_SIGNATURE``` indicates the use of CCA2 anonymous signatures. 
+If commented out the use of CPA anonymous signatures is assumed.  After the design decisions are performed to run the program one must type: 
 ```bash
 # Create group and join 
 make setup_join
