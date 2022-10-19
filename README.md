@@ -45,8 +45,8 @@ make cpa_desktop
 ```
 To use the drone application, download the repo as explained before. Select in ```demo/verify_open.cpp``` the use pre-computations by setting ```#define PRE_COMP```.
 If commented out no pre-computations are performed.
-Select in ```drone/verify_open.cpp``` which version of signature is present in the broadcast ```#define CCA2_SIGNATURE``` indicates the use of CCA2 anonymous signatures. 
-If commented out the use of CPA anonymous signatures is assumed.  After the design decisions are performed to run the program one must type: 
+Select in ```drone/verify_open.cpp``` which version of signature you whish to use,  ```#define CCA2_SIGNATURE``` indicates the use of CCA2 anonymous signatures. 
+If commented out the use of CPA anonymous signatures is assumed.  To run the program one must type: 
 ```bash
 # Create group and join 
 make setup_join
