@@ -7,18 +7,18 @@ The scheme uses a
 
 ## Directory structure
 * `drone`: An Arduino demo application illustrating the CPA and CCA2 version of the RemoteID scheme in different scenarios :
-  - `cca2`: cryptographic Adaptive chosen-ciphertext attack secure version
+  - `cca2`: is the cryptographic Adaptive chosen-ciphertext attack secure version called DS-CCA2-A^2RID
     -  setup, verify, open are performed on desktop while sign phase is performed on a drone.
       - `original`: without pre comp.
       - `pre-comp`: with pre comp.
-  - `cpa`: Chosen-plaintext attack secure version
+  - `cpa`: is the Chosen-plaintext attack secure version called DS-CPA-A^2RID
     -  setup, verify, open are performed on the desktop while sign phase is performed on a drone.
       - `original`: without pre comp.
       - `pre-comp`: with pre comp.
 * `include`: The headers required to run the demo and desktop version.
 * `proverif`: A proverif proof proving that this satisfies the requirements set by the FAA.
 * `src`: Code of the schemes used (nizk, ds, pke)
-* `desktop`: Desktop version of the application mostly used to show correctness
+* `desktop`: Desktop version of the application mostly used to show correctness (contains DS-CCA2-A^2RID aswell as DS-CPA-A^2RID)
 
 ## How to Use
 To clone and run the desktop version type:
