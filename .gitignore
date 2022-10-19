@@ -23,7 +23,6 @@
 # Compiled Static libraries
 *.lai
 *.la
-*.a
 *.lib
 
 # Executables
@@ -31,6 +30,5 @@
 *.out
 *.app
 
-matlab/
-data/
-temp/
+/test
+/demo_old

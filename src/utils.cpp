@@ -40,7 +40,6 @@ int dec_fromHex(char hex)
   else return (int)(hex - 66 + 10);
 }
 
-
 void BIG_fromChar(BIG *a, char ch[])
 {
 	byte i;
@@ -163,7 +162,8 @@ void ECP2_toFile(ECP2 ecp2, FILE *fp)
 void OCT_toFile(octet oct, FILE *fp)
 {
   fprintf(fp, "%d\n", oct.len);
-  fwrite(oct.val, 1, oct.len, fp);
+  fwrite(oct.val, sizeof(char), oct.len, fp);
+  fprintf(fp, "\n");
 }
 
 void BIG_fromFile(FILE *fp, BIG *a)
@@ -181,49 +181,6 @@ void OCT_fromFile(int *len, char *val, FILE *fp)
   fscanf(fp, "%d", len);
   fscanf(fp, "\n");
   fread(val, sizeof(char), *len, fp);
-}
-
-void ECP_precomp(ECP ecp, FILE *fp)
-{
-  BIG x;
-  fprintf(fp, "{0x");
-  FP_reduce(&(ecp.x));
-  FP_redc(x, &(ecp.x));
-  BIG_toCon(x,  fp);
-  fprintf(fp,"}, ");
-  
-  fprintf(fp, "{0x");
-  FP_reduce(&(ecp.y));
-  FP_redc(x, &(ecp.y));
-  BIG_toCon(x,  fp);
-  fprintf(fp,"}, ");
-}
-
-void ECP2_precomp(ECP2 ecp2, FILE *fp)
-{
-  FP2 fp2_x,fp2_y;
-  BIG x, y;
-  ECP2_get(&fp2_x, &fp2_y, &ecp2);
-  FP2_reduce(&fp2_x); FP2_reduce(&fp2_y);
-  FP_redc(x, &fp2_x.a);
-  FP_redc(y, &fp2_x.b);
-  fprintf(fp, "{0x");
-  BIG_toCon(x,  fp);
-  fprintf(fp,"}, ");
-
-  fprintf(fp, "{0x");
-  BIG_toCon(y,  fp);
-  fprintf(fp,"}, ");
-
-  FP_redc(x, &fp2_y.a);
-  FP_redc(y, &fp2_y.b);
-  fprintf(fp, "{0x");
-  BIG_toCon(x,  fp);
-  fprintf(fp,"}, ");
-
-  fprintf(fp, "{0x");
-  BIG_toCon(y,  fp);
-  fprintf(fp,"}, ");
 }
 
 void ECP2_fromFile(FILE *fp, ECP2 *ecp2)

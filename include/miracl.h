@@ -15,6 +15,7 @@ using namespace BN254;
 #define ecp_size 66
 #define ecp2_size 129
 #define big_size 32
+#define m_size 32
 
 typedef struct message_struct
 {

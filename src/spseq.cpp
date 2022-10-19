@@ -127,7 +127,7 @@ int spseq_verify(bg_struct bg, spseq_sig_struct sig, ECP2 pk[], ECP U, ECP Q)
 
   if(!PAIR_G2member(&sig.Y_hat))
   {
-    printf("\tSPSEQ VERIFY ERROR, Y_hat not a member of G1!\n");
+    printf("\tSPSEQ VERIFY ERROR, Y_hat not a member of G2!\n");
     return EXIT_FAILURE;
   } 
   

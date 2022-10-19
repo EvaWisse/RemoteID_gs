@@ -8,17 +8,17 @@ cca2_desktop:
 cpa_desktop:
 	$(CC) $(CFLAGS) src/*cpp  desktop/cpa.cpp $(LIBS) -o cpa_desktop.out
 
-cpa_hybrid_pre:
-	$(CC) $(CFLAGS) src/*cpp  demo/cpa/hybrid/precomp/setup/setup.cpp  $(LIBS) -o cpa_pre_setup.out
+setup_join:
+	$(CC) $(CFLAGS) src/*cpp  drone/setup_join.cpp $(LIBS) -o setup_join.out
 
-cca2_hybrid_pre:
-	$(CC) $(CFLAGS) src/*cpp  demo/cca2/hybrid/precomp/setup/setup.cpp  $(LIBS) -o cca2_pre_setup.out
+cca2_sign:
+	$(CC) $(CFLAGS) src/*cpp  drone/cca2_sign.cpp $(LIBS) -o cca2_sign.out
 
-cpa_hybrid:
-	$(CC) $(CFLAGS) src/*cpp  demo/cpa/hybrid/original/setup/setup.cpp  $(LIBS) -o cpa_setup.out
+cpa_sign:
+	$(CC) $(CFLAGS) src/*cpp  drone/cpa_sign.cpp $(LIBS) -o cpa_sign.out
 
-cca2_hybrid:
-	$(CC) $(CFLAGS) src/*cpp  demo/cca2/hybrid/original/setup/setup.cpp  $(LIBS) -o cca2_setup.out
+verify_open:
+	$(CC) $(CFLAGS) src/*cpp  drone/verify_open.cpp $(LIBS) -o verify_open.out
 
 clean:
 	rm -f *.out
