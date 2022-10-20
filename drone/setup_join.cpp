@@ -1,9 +1,5 @@
 #include "setup_join.h"
-
-#define CCA2_SIGNATURE
-// #define CPA_SIGNATURE
-// #define PRE_COMP // if selected pre-comp version is used
-#define FLIGHT_TIME 5 // number of pre-comp.
+#include "setting.h"
 
 int main()
 {
@@ -203,6 +199,7 @@ int to_header()
   return EXIT_SUCCESS;
 }
 
+#ifdef PRE_COMP
 int cca2_header()
 {   
   FILE *fp = fopen("drone/drone_const.h", "w");
@@ -1556,6 +1553,7 @@ int cpa_header()
   return EXIT_SUCCESS;
 
 }
+#endif
 
 int normal_header()
 {

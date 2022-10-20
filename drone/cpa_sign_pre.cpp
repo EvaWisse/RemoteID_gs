@@ -27,12 +27,9 @@ void sign()
   RAW.len = 100;
   CREATE_CSPRNG(&RNG,  &RAW);
 
-  rho_index = rand() % FLIGHT_TIME;
-  v_index = rand() % FLIGHT_TIME;
-  y_index = rand() % FLIGHT_TIME;
-
-  BIG rho;
-  BIG_randtrunc(rho, p, 2 * CURVE_SECURITY_BN254, &RNG);// select u in {1, ..., p-1}
+  rho_index = rand() % FLIGHT_TIME - 1;
+  v_index = rand() % FLIGHT_TIME - 1;
+  y_index = rand() % FLIGHT_TIME - 1;
 
   // m1
   for (i = 0; i < NLEN_B256_28; i++)

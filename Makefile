@@ -14,8 +14,14 @@ setup_join:
 cca2_sign:
 	$(CC) $(CFLAGS) src/*cpp  drone/cca2_sign.cpp $(LIBS) -o cca2_sign.out
 
+cca2_sign_pre:
+	$(CC) $(CFLAGS) src/*cpp  drone/cca2_sign_pre.cpp $(LIBS) -o cca2_sign_pre.out
+
 cpa_sign:
 	$(CC) $(CFLAGS) src/*cpp  drone/cpa_sign.cpp $(LIBS) -o cpa_sign.out
+
+cpa_sign_pre:
+	$(CC) $(CFLAGS) src/*cpp  drone/cpa_sign_pre.cpp $(LIBS) -o cpa_sign_pre.out
 
 verify_open:
 	$(CC) $(CFLAGS) src/*cpp  drone/verify_open.cpp $(LIBS) -o verify_open.out

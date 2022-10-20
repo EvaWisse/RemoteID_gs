@@ -4,36 +4,27 @@
 
 int main()
 {
-  BIG_rcopy(p, CURVE_Order);  
+  BIG_rcopy(p, CURVE_Order); 
+  memset(m, 0, m_size); 
+
+  char raw[100];
+  octet RAW = {0, sizeof(raw), raw};
+  RAW.len = 100;
+  CREATE_CSPRNG(&RNG,  &RAW);
+
   sign();
   return EXIT_SUCCESS;
 }
 
 void sign()
 {
-  BIG big;
-  ECP ecp;
-  ECP2 ecp2;
-  int rho_index, u_index, v_index, n_index, y_index;
-  hash256 sh256;
   HASH256_init(&sh256);
-  char m[32];
-  memset(m, 0, m_size);
 
-  rho_index = rand() % FLIGHT_TIME;
-  u_index = rand() % FLIGHT_TIME;
-  v_index = rand() % FLIGHT_TIME;
-  n_index = rand() % FLIGHT_TIME;
-  y_index = rand() % FLIGHT_TIME;
-
-  csprng RNG;
-  char raw[100];
-  octet RAW = {0, sizeof(raw), raw};
-  RAW.len = 100;
-  CREATE_CSPRNG(&RNG,  &RAW);
-
-  BIG rho;
-  BIG_randtrunc(rho, p, 2 * CURVE_SECURITY_BN254, &RNG);// select u in {1, ..., p-1}
+  rho_index = rand() % FLIGHT_TIME - 1;
+  u_index = rand() % FLIGHT_TIME - 1;
+  v_index = rand() % FLIGHT_TIME - 1;
+  n_index = rand() % FLIGHT_TIME - 1;
+  y_index = rand() % FLIGHT_TIME - 1;
 
   // m1
   for (int i = 0; i < NLEN_B256_28; i++)

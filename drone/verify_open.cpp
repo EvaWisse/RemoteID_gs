@@ -1,5 +1,5 @@
 #include "verify_open.h"
-#define CCA2_SIGNATURE
+#include "setting.h"
 
 int main()
 {
