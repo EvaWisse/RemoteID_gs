@@ -1,5 +1,7 @@
 #include "setup_join.h"
 
+#define CCA2_SIGNATURE
+// #define CPA_SIGNATURE
 #define PRE_COMP // if selected pre-comp version is used
 #define FLIGHT_TIME 5 // number of pre-comp.
 
@@ -187,6 +189,1371 @@ int to_file()
 int to_header()
 {
   printf("\tCreating drone constants as a header file...\n");
+  
+  #ifdef PRE_COMP
+    #ifdef CPA_SIGNATURE
+      cpa_header();
+    #endif
+    #ifdef CCA2_SIGNATURE
+      cca2_header();
+    #endif
+  #else
+    normal_header();
+  #endif
+}
+int cca2_header()
+{   
+  FILE *fp = fopen("drone/drone_const.h", "w");
+  if(!fp)
+  {
+    printf("Could not create drone_const.h\n");
+    return EXIT_FAILURE;
+  }
+  ECP Z_pre[FLIGHT_TIME][FLIGHT_TIME], Y_pre[FLIGHT_TIME], N_pre[FLIGHT_TIME], m1_pre[FLIGHT_TIME], m2_pre[FLIGHT_TIME];
+  ECP2 Y_hat_pre[FLIGHT_TIME], C1_pre[FLIGHT_TIME][FLIGHT_TIME], C2_pre[FLIGHT_TIME][FLIGHT_TIME], M1_pre[FLIGHT_TIME][FLIGHT_TIME], M2_pre[FLIGHT_TIME][FLIGHT_TIME];
+  BIG y[FLIGHT_TIME], rho[FLIGHT_TIME], v[FLIGHT_TIME], inv[FLIGHT_TIME], n[FLIGHT_TIME], u[FLIGHT_TIME], big;
+  
+  csprng RNG;
+  char raw[100];
+  RAND_seed(&RNG, 100, raw);
+
+  for(int i =0; i<FLIGHT_TIME; i++)
+  {
+    BIG_randomnum(y[i], shared.spseq_bg.p, &RNG);
+    BIG_randomnum(rho[i], shared.spseq_bg.p, &RNG);
+    BIG_randomnum(u[i], shared.spseq_bg.p, &RNG);
+    BIG_randomnum(n[i], shared.spseq_bg.p, &RNG);
+    BIG_randomnum(v[i], shared.spseq_bg.p, &RNG);
+    BIG_invmodp(inv[i], y[i], shared.spseq_bg.p);
+
+    ECP_copy(&Y_pre[i], &drone.sig.Y);
+    ECP_mul(&Y_pre[i], inv[i]);
+
+    ECP_copy(&m1_pre[i], &drone.m1);
+    ECP_mul(&m1_pre[i], rho[i]);
+
+    ECP_copy(&m2_pre[i], &drone.m2);
+    ECP_mul(&m2_pre[i], rho[i]);
+
+    ECP2_copy(&Y_hat_pre[i], &drone.sig.Y_hat);
+    ECP2_mul(&Y_hat_pre[i], inv[i]);
+
+    ECP_copy(&N_pre[i], &shared.spseq_bg.P);
+    ECP_mul(&N_pre[i], v[i]);
+
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      BIG_modmul(big, rho[i], y[j], shared.spseq_bg.p); // i= rho , j = y
+      ECP_copy(&Z_pre[i][j], &drone.sig.Z);
+      ECP_mul(&Z_pre[i][j], big);
+
+      BIG_modadd(big, v[i], n[j], shared.spseq_bg.p);
+      ECP2_copy(&M2_pre[i][j], &shared.spseq_bg.P_hat); // i = v , j = n
+      ECP2_mul(&M2_pre[i][j], big);
+
+      ECP2_copy(&M1_pre[i][j], &Y_hat_pre[i]); // i = y , j = n
+      ECP2_mul(&M1_pre[i][j], n[j]);
+
+      ECP2_copy(&C1_pre[i][j], &Y_hat_pre[i]); // i = y , j = u
+      ECP2_mul(&C1_pre[i][j], u[j]);
+
+      BIG_modadd(big, rho[i], u[j], shared.spseq_bg.p);
+      ECP2_copy(&C2_pre[i][j], &shared.spseq_bg.P_hat); // i = rho , j = u
+      ECP2_mul(&C2_pre[i][j], big);
+    }
+  }
+  
+  fprintf(fp, "#include \"../include/miracl.h\"\n#ifndef CONST_UAS_H\n#define CONST_UAS_H\n");
+
+  // Y 
+  fprintf(fp, "BIG Y_x[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_pre[j].x.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Y_y[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_pre[j].y.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Y_z[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{"); 
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_pre[j].z.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 Y_xes[%d][3]= {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    fprintf(fp, "%#04x, ", Y_pre[j].x.XES);
+    fprintf(fp, "%#04x, ", Y_pre[j].y.XES);
+    fprintf(fp, "%#04x, ", Y_pre[j].z.XES);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "};\n");
+
+  // Z
+  fprintf(fp, "BIG Z_x[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", Z_pre[i][j].x.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Z_y[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", Z_pre[i][j].y.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Z_z[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", Z_pre[i][j].z.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 Z_xes[%d][%d][3]= {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{%#04x, ", Z_pre[i][j].x.XES);
+      fprintf(fp, "%#04x, ", Z_pre[i][j].y.XES);
+      fprintf(fp, "%#04x}, ", Z_pre[i][j].z.XES);
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "};\n");
+
+  // Y_HAT
+  fprintf(fp, "BIG Y_hat_xa[%d]={", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_hat_pre[j].x.a.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Y_hat_xb[%d]={", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_hat_pre[j].x.b.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Y_hat_ya[%d]={", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_hat_pre[j].y.a.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Y_hat_yb[%d]={", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_hat_pre[j].y.b.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Y_hat_za[%d]={", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_hat_pre[j].z.a.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Y_hat_zb[%d]={", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_hat_pre[j].z.b.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+
+  fprintf(fp, "};\nconst sign32 xesa[%d][3]= {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    fprintf(fp, "%#04x, ", Y_hat_pre[j].x.a.XES);
+    fprintf(fp, "%#04x, ", Y_hat_pre[j].y.a.XES);
+    fprintf(fp, "%#04x, ", Y_hat_pre[j].z.a.XES);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nconst sign32 xesb[%d][3]= {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    fprintf(fp, "%#04x, ", Y_hat_pre[j].x.b.XES);
+    fprintf(fp, "%#04x, ", Y_hat_pre[j].y.b.XES);
+    fprintf(fp, "%#04x, ", Y_hat_pre[j].z.b.XES);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "};\n");
+
+  // N
+  fprintf(fp, "BIG N_x[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", N_pre[j].x.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG N_y[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", N_pre[j].y.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG N_z[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", N_pre[j].z.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 N_xes[%d][3]= {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    fprintf(fp, "%#04x, ", N_pre[j].x.XES);
+    fprintf(fp, "%#04x, ", N_pre[j].y.XES);
+    fprintf(fp, "%#04x, ", N_pre[j].z.XES);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "};\n");
+
+  // m1
+  fprintf(fp, "BIG m1_x[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", m1_pre[j].x.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG m1_y[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", m1_pre[j].y.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG m1_z[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", m1_pre[j].z.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 m1_xes[%d][3]= {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    fprintf(fp, "%#04x, ", m1_pre[j].x.XES);
+    fprintf(fp, "%#04x, ", m1_pre[j].y.XES);
+    fprintf(fp, "%#04x, ", m1_pre[j].z.XES);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "};\n");
+
+  
+  // m2
+  fprintf(fp, "BIG m2_x[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", m2_pre[j].x.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG m2_y[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", m2_pre[j].y.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG m2_z[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", m2_pre[j].z.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 m2_xes[%d][3]= {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    fprintf(fp, "%#04x, ", m2_pre[j].x.XES);
+    fprintf(fp, "%#04x, ", m2_pre[j].y.XES);
+    fprintf(fp, "%#04x, ", m2_pre[j].z.XES);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG rho[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", rho[j][i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG v[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", v[j][i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG n[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", n[j][i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG u[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", u[j][i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+   // C1
+  fprintf(fp, "};\nBIG C1_xa[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", C1_pre[i][j].x.a.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG C1_ya[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", C1_pre[i][j].y.a.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG C1_za[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", C1_pre[i][j].z.a.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 C1_xesa[%d][%d][3]= {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{%#04x, ", C1_pre[i][j].x.a.XES);
+      fprintf(fp, "%#04x, ", C1_pre[i][j].y.a.XES);
+      fprintf(fp, "%#04x}, ", C1_pre[i][j].z.a.XES);
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "};\n");
+
+   // C1
+  fprintf(fp, "BIG C1_xb[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", C1_pre[i][j].x.b.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG C1_yb[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", C1_pre[i][j].y.b.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG C1_zb[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", C1_pre[i][j].z.b.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 C1_xesb[%d][%d][3]= {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{%#04x, ", C1_pre[i][j].x.b.XES);
+      fprintf(fp, "%#04x, ", C1_pre[i][j].y.b.XES);
+      fprintf(fp, "%#04x}, ", C1_pre[i][j].z.b.XES);
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+    // C2
+  fprintf(fp, "};\nBIG C2_xa[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", C2_pre[i][j].x.a.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG C2_ya[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", C2_pre[i][j].y.a.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG C2_za[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", C2_pre[i][j].z.a.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 C2_xesa[%d][%d][3]= {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{%#04x, ", C2_pre[i][j].x.a.XES);
+      fprintf(fp, "%#04x, ", C2_pre[i][j].y.a.XES);
+      fprintf(fp, "%#04x}, ", C2_pre[i][j].z.a.XES);
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "};\n");
+
+   // C2
+  fprintf(fp, "BIG C2_xb[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", C2_pre[i][j].x.b.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG C2_yb[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", C2_pre[i][j].y.b.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG C2_zb[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", C2_pre[i][j].z.b.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 C2_xesb[%d][%d][3]= {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{%#04x, ", C2_pre[i][j].x.b.XES);
+      fprintf(fp, "%#04x, ", C2_pre[i][j].y.b.XES);
+      fprintf(fp, "%#04x}, ", C2_pre[i][j].z.b.XES);
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  // M1
+    // M1
+  fprintf(fp, "};\nBIG M1_xa[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", M1_pre[i][j].x.a.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG M1_ya[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", M1_pre[i][j].y.a.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG M1_za[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", M1_pre[i][j].z.a.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 M1_xesa[%d][%d][3]= {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{%#04x, ", M1_pre[i][j].x.a.XES);
+      fprintf(fp, "%#04x, ", M1_pre[i][j].y.a.XES);
+      fprintf(fp, "%#04x}, ", M1_pre[i][j].z.a.XES);
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "};\n");
+
+   // M1
+  fprintf(fp, "BIG M1_xb[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", M1_pre[i][j].x.b.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG M1_yb[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", M1_pre[i][j].y.b.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG M1_zb[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", M1_pre[i][j].z.b.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 M1_xesb[%d][%d][3]= {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{%#04x, ", M1_pre[i][j].x.b.XES);
+      fprintf(fp, "%#04x, ", M1_pre[i][j].y.b.XES);
+      fprintf(fp, "%#04x}, ", M1_pre[i][j].z.b.XES);
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+    // M2
+  fprintf(fp, "};\nBIG M2_xa[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", M2_pre[i][j].x.a.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG M2_ya[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", M2_pre[i][j].y.a.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG M2_za[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", M2_pre[i][j].z.a.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 M2_xesa[%d][%d][3]= {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{%#04x, ", M2_pre[i][j].x.a.XES);
+      fprintf(fp, "%#04x, ", M2_pre[i][j].y.a.XES);
+      fprintf(fp, "%#04x}, ", M2_pre[i][j].z.a.XES);
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "};\n");
+
+   // M2
+  fprintf(fp, "BIG M2_xb[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", M2_pre[i][j].x.b.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG M2_yb[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", M2_pre[i][j].y.b.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG M2_zb[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", M2_pre[i][j].z.b.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 M2_xesb[%d][%d][3]= {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{%#04x, ", M2_pre[i][j].x.b.XES);
+      fprintf(fp, "%#04x, ", M2_pre[i][j].y.b.XES);
+      fprintf(fp, "%#04x}, ", M2_pre[i][j].z.b.XES);
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\n#endif");
+  fclose(fp);
+}
+
+int cpa_header()
+{
+  FILE *fp = fopen("drone/drone_const.h", "w");
+  if(!fp)
+  {
+    printf("Could not create drone_const.h\n");
+    return EXIT_FAILURE;
+  }
+  ECP Z_pre[FLIGHT_TIME][FLIGHT_TIME], Y_pre[FLIGHT_TIME], N_pre[FLIGHT_TIME], m1_pre[FLIGHT_TIME], m2_pre[FLIGHT_TIME];
+  ECP2 Y_hat_pre[FLIGHT_TIME];
+  BIG y[FLIGHT_TIME], rho[FLIGHT_TIME], v[FLIGHT_TIME], inv[FLIGHT_TIME], big;
+  csprng RNG;
+  char raw[100];
+  RAND_seed(&RNG, 100, raw);
+
+  for(int i =0; i<FLIGHT_TIME; i++)
+  {
+    BIG_randomnum(y[i], shared.spseq_bg.p, &RNG);
+    BIG_randomnum(rho[i], shared.spseq_bg.p, &RNG);
+    BIG_randomnum(v[i], shared.spseq_bg.p, &RNG);
+    BIG_invmodp(inv[i], y[i], shared.spseq_bg.p);
+
+    ECP_copy(&Y_pre[i], &drone.sig.Y);
+    ECP_mul(&Y_pre[i], inv[i]);
+
+    ECP_copy(&m1_pre[i], &drone.m1);
+    ECP_mul(&m1_pre[i], rho[i]);
+
+    ECP_copy(&m2_pre[i], &drone.m2);
+    ECP_mul(&m2_pre[i], rho[i]);
+
+    ECP2_copy(&Y_hat_pre[i], &drone.sig.Y_hat);
+    ECP2_mul(&Y_hat_pre[i], inv[i]);
+
+    ECP_copy(&N_pre[i], &shared.spseq_bg.P);
+    ECP_mul(&N_pre[i], v[i]);
+
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      BIG_modmul(big, rho[i], y[j], shared.spseq_bg.p); /// i = rho, j=y
+      ECP_copy(&Z_pre[i][j], &drone.sig.Z);
+      ECP_mul(&Z_pre[i][j], big);
+    }
+  }
+  
+  fprintf(fp, "#include \"../include/miracl.h\"\n#ifndef CONST_UAS_H\n#define CONST_UAS_H\n");
+
+  // Y 
+  fprintf(fp, "BIG Y_x[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_pre[j].x.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Y_y[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_pre[j].y.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Y_z[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{"); 
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_pre[j].z.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 Y_xes[%d][3]= {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    fprintf(fp, "%#04x, ", Y_pre[j].x.XES);
+    fprintf(fp, "%#04x, ", Y_pre[j].y.XES);
+    fprintf(fp, "%#04x, ", Y_pre[j].z.XES);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "};\n");
+
+  // Z
+  fprintf(fp, "BIG Z_x[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", Z_pre[i][j].x.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Z_y[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", Z_pre[i][j].y.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Z_z[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{");
+      for(int k=0;k<NLEN_B256_28;k++) fprintf(fp, "%#08x, ", Z_pre[i][j].z.g[k]);
+      fseek(fp, -2, SEEK_CUR);
+      fprintf(fp, "}, ");
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 Z_xes[%d][%d][3]= {", FLIGHT_TIME, FLIGHT_TIME);
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
+    fprintf(fp, "{");
+    for(int j=0; j<FLIGHT_TIME; j++)
+    {
+      fprintf(fp, "{%#04x, ", Z_pre[i][j].x.XES);
+      fprintf(fp, "%#04x, ", Z_pre[i][j].y.XES);
+      fprintf(fp, "%#04x}, ", Z_pre[i][j].z.XES);
+    }
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "};\n");
+
+  // Y_HAT
+  fprintf(fp, "BIG Y_hat_xa[%d]={", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_hat_pre[j].x.a.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Y_hat_xb[%d]={", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_hat_pre[j].x.b.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Y_hat_ya[%d]={", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_hat_pre[j].y.a.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Y_hat_yb[%d]={", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_hat_pre[j].y.b.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Y_hat_za[%d]={", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_hat_pre[j].z.a.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG Y_hat_zb[%d]={", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", Y_hat_pre[j].z.b.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+
+  fprintf(fp, "};\nconst sign32 xesa[%d][3]= {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    fprintf(fp, "%#04x, ", Y_hat_pre[j].x.a.XES);
+    fprintf(fp, "%#04x, ", Y_hat_pre[j].y.a.XES);
+    fprintf(fp, "%#04x, ", Y_hat_pre[j].z.a.XES);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nconst sign32 xesb[%d][3]= {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    fprintf(fp, "%#04x, ", Y_hat_pre[j].x.b.XES);
+    fprintf(fp, "%#04x, ", Y_hat_pre[j].y.b.XES);
+    fprintf(fp, "%#04x, ", Y_hat_pre[j].z.b.XES);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "};\n");
+
+  // N
+  fprintf(fp, "BIG N_x[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", N_pre[j].x.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG N_y[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", N_pre[j].y.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG N_z[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", N_pre[j].z.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 N_xes[%d][3]= {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    fprintf(fp, "%#04x, ", N_pre[j].x.XES);
+    fprintf(fp, "%#04x, ", N_pre[j].y.XES);
+    fprintf(fp, "%#04x, ", N_pre[j].z.XES);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "};\n");
+
+  // m1
+  fprintf(fp, "BIG m1_x[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", m1_pre[j].x.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG m1_y[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", m1_pre[j].y.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG m1_z[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", m1_pre[j].z.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 m1_xes[%d][3]= {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    fprintf(fp, "%#04x, ", m1_pre[j].x.XES);
+    fprintf(fp, "%#04x, ", m1_pre[j].y.XES);
+    fprintf(fp, "%#04x, ", m1_pre[j].z.XES);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "};\n");
+
+  
+  // m2
+  fprintf(fp, "BIG m2_x[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", m2_pre[j].x.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG m2_y[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", m2_pre[j].y.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG m2_z[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", m2_pre[j].z.g[i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  
+  fprintf(fp, "};\nconst sign32 m2_xes[%d][3]= {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    fprintf(fp, "%#04x, ", m2_pre[j].x.XES);
+    fprintf(fp, "%#04x, ", m2_pre[j].y.XES);
+    fprintf(fp, "%#04x, ", m2_pre[j].z.XES);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG rho[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", rho[j][i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+
+  fprintf(fp, "};\nBIG v[%d] = {", FLIGHT_TIME);
+  for(int j=0; j<FLIGHT_TIME; j++)
+  {
+    fprintf(fp, "{");
+    for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", v[j][i]);
+    fseek(fp, -2, SEEK_CUR);
+    fprintf(fp, "}, ");
+  }
+  fseek(fp, -2, SEEK_CUR);
+  fprintf(fp, "};\n#endif");
+  fclose(fp);
+}
+
+int normal_header()
+{
   FILE *fp = fopen("drone/drone_const.h", "w");
   if(!fp)
   {
@@ -275,12 +1642,8 @@ int to_header()
   fprintf(fp, "{%#04x, %#04x, %#04x};\n", drone.m1.x.XES, drone.m1.y.XES, drone.m1.z.XES);
   fprintf(fp, "const sign32 m2_xes[3]= ");
   fprintf(fp, "{%#04x, %#04x, %#04x};\n", drone.m2.x.XES, drone.m2.y.XES, drone.m2.z.XES);
+
   fprintf(fp, "#endif\n");
-
-  #ifdef PRE_COMP
-
-  #endif
-
   fclose(fp);
 
   return EXIT_SUCCESS;
