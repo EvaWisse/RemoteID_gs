@@ -57,27 +57,19 @@ int main()
   Y_hat.x.b.XES = xesb[0];
   Y_hat.y.b.XES = xesb[1];
   Y_hat.z.b.XES = xesb[2];
-  
+  memset(m, 0, m_size);
+  char raw[100];
+  octet RAW = {0, sizeof(raw), raw};
+  RAW.len = 100;
+  CREATE_CSPRNG(&RNG,  &RAW);
+
   sign();
   return EXIT_SUCCESS;
 }
 
 void sign()
 {
-  BIG big;
-  ECP ecp;
-  ECP2 ecp2;
-  hash256 sh256;
   HASH256_init(&sh256);
-  char m[32];
-  memset(m, 0, m_size);
-
-  csprng RNG;
-  char raw[100];
-  octet RAW = {0, sizeof(raw), raw};
-  RAW.len = 100;
-  CREATE_CSPRNG(&RNG,  &RAW);
-
   BIG rho;
   BIG_randtrunc(rho, p, 2 * CURVE_SECURITY_BN254, &RNG);// select u in {1, ..., p-1}
 
