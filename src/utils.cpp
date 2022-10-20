@@ -159,13 +159,6 @@ void ECP2_toFile(ECP2 ecp2, FILE *fp)
   FP2_toFile(fp2_y, fp);
 }
 
-// void OCT_toFile(octet oct, FILE *fp)
-// {
-//   fprintf(fp, "%d\n", oct.len);
-//   fwrite(oct.val, sizeof(char), oct.len, fp);
-//   fprintf(fp, "\n");
-// }
-
 void OCT_toFile(octet *oct, FILE *fp)
 {
   fprintf(fp, "%d\n", oct->len);
@@ -173,7 +166,7 @@ void OCT_toFile(octet *oct, FILE *fp)
   for (int i = 0; i < oct->len; i++)
   {
     ch = oct->val[i];
-    fprintf(fp, "%c", ch);
+    fprintf(fp, "%02x", ch);
   }
   fprintf(fp, "\n");
 }
@@ -188,18 +181,16 @@ void BIG_fromFile(FILE *fp, BIG *a)
 	free(ch);
 }
 
-// void OCT_fromFile(int *len, char *val, FILE *fp)
-// {
-//   fscanf(fp, "%d", len);
-//   fscanf(fp, "\n");
-//   fread(val, sizeof(char), *len, fp);
-// }
-
 void OCT_fromFile(octet *oct, FILE *fp)
 {
   fscanf(fp, "%d", &oct->len);
   fscanf(fp, "\n");
-  fgets(oct->val, oct->len + 1, (FILE *)fp);
+  char *ch;
+	ch = (char*) malloc(sizeof(char) * 2 * oct->len + 2);
+	memset(ch, 0, 2 * oct->len + 2);
+	fgets(ch, 2 * oct->len + 1, (FILE *)fp);
+  OCT_fromHex(oct, ch);
+	free(ch);
 }
 
 void ECP2_fromFile(FILE *fp, ECP2 *ecp2)

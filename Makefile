@@ -24,10 +24,9 @@ clean:
 	rm -f *.out
 	rm -f *.txt
 	rm -f *.h
-
 	
 header:
 	$(CC) $(CFLAGS) src/*cpp  test/header_check.cpp $(LIBS) -o header_check.out
 	
-tests:
-	$(CC) $(CFLAGS) src/*cpp  test/test.cpp $(LIBS) -o test.out
+file:
+	$(CC) $(CFLAGS) src/*cpp  test/file_check.cpp $(LIBS) -o file_check.out
