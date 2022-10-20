@@ -1,4 +1,4 @@
-# A2RID
+# $DS-A^2RID$: Anonymous Direct Authentication and Remote Identification of Commercial Drones
 This repository contains the code of the implementation of an Anonymous Direct Authentication and Remote Identification protocol for Commercial Drones, based on the anonymous group signature scheme introduced by Derler et al.
 The scheme uses a
 * NIZK scheme --> Schnorr's nizk protocol[^2]
