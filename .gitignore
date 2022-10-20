@@ -30,5 +30,6 @@
 *.out
 *.app
 
-/test
+/test_old
 /demo_old
+/test

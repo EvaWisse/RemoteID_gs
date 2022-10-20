@@ -44,6 +44,8 @@ int verify()
   char digest[32];
   hash256 sh256;
   HASH256_init(&sh256);  
+  hash_ECP(&sh256, drone_output.m1);
+  hash_ECP(&sh256, drone_output.m2);
   hash_ECP(&sh256, drone_output.new_sig.Z);
   hash_ECP(&sh256, drone_output.new_sig.Y);
   hash_ECP2(&sh256, drone_output.new_sig.Y_hat);

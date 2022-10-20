@@ -201,6 +201,8 @@ int sign()
   hash256 sh256;
   char c_ch[32];
   HASH256_init(&sh256);
+  hash_ECP(&sh256, drone_output.m1);
+  hash_ECP(&sh256, drone_output.m2);
   hash_ECP(&sh256, N);
   hash_ECP2(&sh256, M1_hat);
   hash_ECP2(&sh256, M2_hat);
@@ -259,6 +261,8 @@ int verify()
   char digest[32];
   hash256 sh256;
   HASH256_init(&sh256);
+  hash_ECP(&sh256, drone_output.m1);
+  hash_ECP(&sh256, drone_output.m2);
   hash_ECP(&sh256, N);
   hash_ECP2(&sh256, M1);
   hash_ECP2(&sh256, M2);

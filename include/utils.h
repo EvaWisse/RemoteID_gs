@@ -18,7 +18,8 @@ void BIG_toFile(BIG big, FILE *fp);
 void FP2_toFile(FP2 fp2, FILE *fp);
 void ECP_toFile(ECP ecp, FILE *fp);
 void ECP2_toFile(ECP2 ecp2, FILE *fp);
-void OCT_toFile(octet oct, FILE *fp);
+// void OCT_toFile(octet oct, FILE *fp);
+void OCT_toFile(octet *oct, FILE *fp);
 
 void BIG_fromFile(FILE *fp, BIG *a);
 void ECP_fromFile(FILE*fp, ECP *ecp);

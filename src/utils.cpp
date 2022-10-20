@@ -159,10 +159,22 @@ void ECP2_toFile(ECP2 ecp2, FILE *fp)
   FP2_toFile(fp2_y, fp);
 }
 
-void OCT_toFile(octet oct, FILE *fp)
+// void OCT_toFile(octet oct, FILE *fp)
+// {
+//   fprintf(fp, "%d\n", oct.len);
+//   fwrite(oct.val, sizeof(char), oct.len, fp);
+//   fprintf(fp, "\n");
+// }
+
+void OCT_toFile(octet *oct, FILE *fp)
 {
-  fprintf(fp, "%d\n", oct.len);
-  fwrite(oct.val, sizeof(char), oct.len, fp);
+  fprintf(fp, "%d\n", oct->len);
+  unsigned char ch;
+  for (int i = 0; i < oct->len; i++)
+  {
+    ch = oct->val[i];
+    fprintf(fp, "%02x", ch);
+  }
   fprintf(fp, "\n");
 }
 
@@ -175,6 +187,13 @@ void BIG_fromFile(FILE *fp, BIG *a)
 	BIG_fromChar(a, ch);
 	free(ch);
 }
+
+// void OCT_fromFile(int *len, char *val, FILE *fp)
+// {
+//   fscanf(fp, "%d", len);
+//   fscanf(fp, "\n");
+//   fread(val, sizeof(char), *len, fp);
+// }
 
 void OCT_fromFile(int *len, char *val, FILE *fp)
 {

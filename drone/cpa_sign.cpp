@@ -85,11 +85,13 @@ void sign()
   ECP_copy(&ecp, &m1);
   ECP_mul(&ecp, rho);
   ECP_toChar(bc, &ecp);
+  hash_ECP(&sh256, ecp);
 
   // m2
   ECP_copy(&ecp, &m2);
   ECP_mul(&ecp, rho);
   ECP_toChar(bc + ecp_size, &ecp);
+  hash_ECP(&sh256, ecp);
 
   BIG y, inv_y;
   BIG_randtrunc(y, p, 2 * CURVE_SECURITY_BN254, &RNG);

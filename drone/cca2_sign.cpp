@@ -1,6 +1,5 @@
 #include "cca2_sign.h"
 #include "drone_const.h"
-#define C
 
 int main()
 {

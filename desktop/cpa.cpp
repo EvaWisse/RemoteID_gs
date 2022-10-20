@@ -180,6 +180,8 @@ int sign()
   hash256 sh256;
   char c_ch[32];
   HASH256_init(&sh256);
+  hash_ECP(&sh256, drone_output.m1);
+  hash_ECP(&sh256, drone_output.m2);
   hash_ECP(&sh256, N);
   hash_ECP(&sh256, drone_output.new_sig.Z);
   hash_ECP(&sh256, drone_output.new_sig.Y);
@@ -221,6 +223,8 @@ int verify()
   char digest[32];
   hash256 sh256;
   HASH256_init(&sh256);
+  hash_ECP(&sh256, drone_output.m1);
+  hash_ECP(&sh256, drone_output.m2);
   hash_ECP(&sh256, N);
   hash_ECP(&sh256, drone_output.new_sig.Z);
   hash_ECP(&sh256, drone_output.new_sig.Y);
