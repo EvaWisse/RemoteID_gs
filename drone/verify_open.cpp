@@ -1,5 +1,5 @@
 #include "verify_open.h"
-// #define CCA2_SIGNATURE
+#define CCA2_SIGNATURE
 
 int main()
 {
@@ -103,12 +103,12 @@ int read_groupinfo()
   }
   ECP2_fromFile(fp, &shared.spseq_pk[0]);
   ECP2_fromFile(fp, &shared.spseq_pk[1]);
-  OCT_fromFile(&shared.pke_param.P1.len, shared.pke_param.P1.val, fp);
-  OCT_fromFile(&shared.pke_param.P2.len, shared.pke_param.P2.val, fp);
-  OCT_fromFile(&ttp.pke_sk.S.len, ttp.pke_sk.S.val, fp);
-  OCT_fromFile(&shared_setup.pke_cipher.C.len, shared_setup.pke_cipher.C.val, fp);
-  OCT_fromFile(&shared_setup.pke_cipher.T.len, shared_setup.pke_cipher.T.val, fp);
-  OCT_fromFile(&shared_setup.pke_cipher.V.len, shared_setup.pke_cipher.V.val, fp);
+  OCT_fromFile(&shared.pke_param.P1, fp);
+  OCT_fromFile(&shared.pke_param.P2, fp);
+  OCT_fromFile(&ttp.pke_sk.S, fp);
+  OCT_fromFile(&shared_setup.pke_cipher.C, fp);
+  OCT_fromFile(&shared_setup.pke_cipher.T, fp);
+  OCT_fromFile(&shared_setup.pke_cipher.V, fp);
 
   fclose(fp);
 

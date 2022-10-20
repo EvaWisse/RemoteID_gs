@@ -2,7 +2,7 @@
 
 #define CCA2_SIGNATURE
 // #define CPA_SIGNATURE
-#define PRE_COMP // if selected pre-comp version is used
+// #define PRE_COMP // if selected pre-comp version is used
 #define FLIGHT_TIME 5 // number of pre-comp.
 
 int main()
@@ -173,14 +173,14 @@ int to_file()
   ECP2_toFile(shared.spseq_pk[0], fp);
   ECP2_toFile(shared.spseq_pk[1], fp);
 
-  OCT_toFile(shared.pke_param.P1, fp);
-  OCT_toFile(shared.pke_param.P2, fp);
+  OCT_toFile(&shared.pke_param.P1, fp);
+  OCT_toFile(&shared.pke_param.P2, fp);
 
-  OCT_toFile(ttp.pke_sk.S, fp);
+  OCT_toFile(&ttp.pke_sk.S, fp);
 
-  OCT_toFile(shared_setup.pke_cipher.C, fp);
-  OCT_toFile(shared_setup.pke_cipher.T, fp);
-  OCT_toFile(shared_setup.pke_cipher.V, fp);
+  OCT_toFile(&shared_setup.pke_cipher.C, fp);
+  OCT_toFile(&shared_setup.pke_cipher.T, fp);
+  OCT_toFile(&shared_setup.pke_cipher.V, fp);
   fclose(fp);
 
   return EXIT_SUCCESS;
@@ -200,7 +200,9 @@ int to_header()
   #else
     normal_header();
   #endif
+  return EXIT_SUCCESS;
 }
+
 int cca2_header()
 {   
   FILE *fp = fopen("drone/drone_const.h", "w");
@@ -1152,6 +1154,7 @@ int cca2_header()
 
   fprintf(fp, "};\n#endif");
   fclose(fp);
+  return EXIT_SUCCESS;
 }
 
 int cpa_header()
@@ -1550,6 +1553,8 @@ int cpa_header()
   fseek(fp, -2, SEEK_CUR);
   fprintf(fp, "};\n#endif");
   fclose(fp);
+  return EXIT_SUCCESS;
+
 }
 
 int normal_header()

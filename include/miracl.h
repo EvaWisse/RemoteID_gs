@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <time.h>
+#include <stdio.h>
+#include <math.h>
 
 #include "miracl/pair_BN254.h"
 #include "miracl/randapi.h"

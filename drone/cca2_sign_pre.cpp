@@ -4,61 +4,7 @@
 
 int main()
 {
-  BIG_rcopy(p, CURVE_Order);
-  ECP_generator(&P);
-  ECP2_generator(&P_hat);
-
-  for (int i = 0; i < NLEN_B256_28; i++)
-  {
-    m1.x.g[i] = m1_h[0][i];
-    m1.y.g[i] = m1_h[1][i];
-    m1.z.g[i] = m1_h[2][i];
-
-    m2.x.g[i] = m2_h[0][i];
-    m2.y.g[i] = m2_h[1][i];
-    m2.z.g[i] = m2_h[2][i];
-
-    Z.x.g[i] = Z_h[0][i];
-    Z.y.g[i] = Z_h[1][i];
-    Z.z.g[i] = Z_h[2][i];
-
-    Y.x.g[i] = Y_h[0][i];
-    Y.y.g[i] = Y_h[1][i];
-    Y.z.g[i] = Y_h[2][i];
-
-    Y_hat.x.a.g[i] = Y_hat_ha[0][i];
-    Y_hat.y.a.g[i] = Y_hat_ha[1][i];
-    Y_hat.z.a.g[i] = Y_hat_ha[2][i];
-
-    Y_hat.x.b.g[i] = Y_hat_hb[0][i];
-    Y_hat.y.b.g[i] = Y_hat_hb[1][i];
-    Y_hat.z.b.g[i] = Y_hat_hb[2][i];
-  }
-
-  m1.x.XES = m1_xes[0];
-  m1.y.XES = m1_xes[1];
-  m1.z.XES = m1_xes[2];
-
-  m2.x.XES = m2_xes[0];
-  m2.y.XES = m2_xes[1];
-  m2.z.XES = m2_xes[2];
-
-  Y.x.XES = Y_xes[0];
-  Y.y.XES = Y_xes[1];
-  Y.z.XES = Y_xes[2];
-
-  Z.x.XES = Z_xes[0];
-  Z.y.XES = Z_xes[1];
-  Z.z.XES = Z_xes[2];
-
-  Y_hat.x.a.XES = xesa[0];
-  Y_hat.y.a.XES = xesa[1];
-  Y_hat.z.a.XES = xesa[2];
-
-  Y_hat.x.b.XES = xesb[0];
-  Y_hat.y.b.XES = xesb[1];
-  Y_hat.z.b.XES = xesb[2];
-  
+  BIG_rcopy(p, CURVE_Order);  
   sign();
   return EXIT_SUCCESS;
 }

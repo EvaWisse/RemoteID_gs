@@ -24,6 +24,5 @@ void OCT_toFile(octet *oct, FILE *fp);
 void BIG_fromFile(FILE *fp, BIG *a);
 void ECP_fromFile(FILE*fp, ECP *ecp);
 void ECP2_fromFile(FILE *fp, ECP2 *ecp2);
-void OCT_fromFile(int *len, char *val, FILE *fp);
-
+void OCT_fromFile(octet *oct, FILE *fp);
 #endif

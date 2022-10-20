@@ -12,6 +12,7 @@ int main()
 
 int setup()
 {
+  printf("Setup group...\n");
   csprng RNG;
   char raw[100];
   octet RAW = {0, sizeof(raw), raw};
@@ -27,6 +28,7 @@ int setup()
 
 int join()
 {
+  printf("Join group...\n");
   if(join_part1()) return EXIT_FAILURE;
   if(join_ttp()) return EXIT_FAILURE;
   if(join_part2()) return EXIT_FAILURE;
@@ -155,6 +157,7 @@ int join_part2()
 
 int sign()
 {
+  printf("Sign message...\n");
   csprng RNG;
   char raw[100];
   octet RAW = {0, sizeof(raw), raw};
@@ -208,6 +211,8 @@ int sign()
 
 int verify()
 {
+  printf("Verify message...\n");
+
   if(spseq_verify(shared.spseq_bg, drone_output.new_sig, shared.spseq_pk, drone_output.m1, drone_output.m2)) return EXIT_FAILURE;
 
   BIG t1;
@@ -242,11 +247,13 @@ int verify()
     printf("\tVERIFY ERROR, hash does not verify.\n");
     return EXIT_FAILURE;
   }
+  printf("Verification successful!\n");
   return EXIT_SUCCESS;
 }
 
 int open()
 {
+  printf("Open message...\n");
   // decrypt
   ECP2 rP_hat;
   char rp_hat[4 * MODBYTES_B256_28 + 1];
@@ -264,5 +271,6 @@ int open()
     printf("\tOpen ERROR, does not open!\n"); 
     return EXIT_FAILURE;
   } 
+  printf("Opening successful!\n");
   return EXIT_SUCCESS;
 } 

@@ -84,11 +84,13 @@ void sign()
   // m1
   ECP_copy(&ecp, &m1);
   ECP_mul(&ecp, rho);
+  hash_ECP(&sh256, ecp);
   ECP_toChar(bc, &ecp);
 
   // m2
   ECP_copy(&ecp, &m2);
   ECP_mul(&ecp, rho);
+  hash_ECP(&sh256, ecp);
   ECP_toChar(bc + ecp_size, &ecp);
 
   BIG y, inv_y;

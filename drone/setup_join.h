@@ -67,4 +67,7 @@ int join_ttp();
 int join_part2();
 int to_file();
 int to_header();
+int cca2_header();
+int cpa_header();
+int normal_header();
 #endif

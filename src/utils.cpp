@@ -173,7 +173,7 @@ void OCT_toFile(octet *oct, FILE *fp)
   for (int i = 0; i < oct->len; i++)
   {
     ch = oct->val[i];
-    fprintf(fp, "%02x", ch);
+    fprintf(fp, "%c", ch);
   }
   fprintf(fp, "\n");
 }
@@ -195,11 +195,11 @@ void BIG_fromFile(FILE *fp, BIG *a)
 //   fread(val, sizeof(char), *len, fp);
 // }
 
-void OCT_fromFile(int *len, char *val, FILE *fp)
+void OCT_fromFile(octet *oct, FILE *fp)
 {
-  fscanf(fp, "%d", len);
+  fscanf(fp, "%d", &oct->len);
   fscanf(fp, "\n");
-  fread(val, sizeof(char), *len, fp);
+  fgets(oct->val, oct->len + 1, (FILE *)fp);
 }
 
 void ECP2_fromFile(FILE *fp, ECP2 *ecp2)
