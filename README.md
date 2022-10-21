@@ -59,7 +59,6 @@ After a broadcast is received this needs to stores in ```broadcast.txt```. The b
 make verify_open
 ./verify_open.out 
 ```
-After the 
 [^1]: Fuchsbauer, G., Hanser, C., & Slamanig, D. (2019). Structure-Preserving Signatures on Equivalence Classes and Constant-Size Anonymous Credentials. Journal of Cryptology, 32(2), 498–546. https://doi.org/10.1007/s00145-018-9281-4
 [^2]: Hao, F. (2017). Schnorr Non-interactive Zero-Knowledge Proof (Issue 8235, pp. 1–13). RFC Editor. https://doi.org/10.17487/RFC8235
 [^3]: Boneh, D., Gorbunov, S., Wahby, R. S., Wee, H., Wood, C. A., & Zhang, Z. (2022). BLS Signatures (Issue draft-irtf-cfrg-bls-signature-05). Internet Engineering Task Force. https://datatracker.ietf.org/doc/draft-irtf-cfrg-bls-signature/05/
