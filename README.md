@@ -52,7 +52,7 @@ If commented out the use of CPA anonymous signatures is assumed.  To run the pro
 make setup_join
 ./setup_join.out
 ```
-Now one must upload ```cca2_sign.cpp``` or ```cpa_sign.cpp``` to the device in combination with ```drone_const.h``` and the Miracl library. 
+Now one must upload ```cca2_sign.cpp``` or ```cpa_sign.cpp``` to the device in combination with ```drone_const.h``` and the Miracl library if no pre-comp. is used. In case of pre-comp.one must upload ```cca2_sign_pre.cpp``` or ```cpa_sign_pre.cpp``` to the device in combination with ```drone_const.h``` and the Miracl library
 After a broadcast is received this needs to stores in ```broadcast.txt```. The broadcast can be verified and opened by:
 ```bash
 # Check broadcast
