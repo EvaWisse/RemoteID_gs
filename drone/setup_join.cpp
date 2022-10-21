@@ -1598,58 +1598,58 @@ int normal_header()
   fprintf(fp, "}};\n");
 
   fprintf(fp, "BIG Y_h[3] ={{");
-  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y.x.g[i]);
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.sig.Y.x.g[i]);
   fseek(fp, -2, SEEK_CUR);
   fprintf(fp, "}, {");
-  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y.y.g[i]);
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.sig.Y.y.g[i]);
   fseek(fp, -2, SEEK_CUR);
   fprintf(fp, "}, {");
-  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y.z.g[i]);
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.sig.Y.z.g[i]);
   fseek(fp, -2, SEEK_CUR);
   fprintf(fp, "}};\n");
 
   fprintf(fp, "BIG Z_h[3] ={{");
-  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Z.x.g[i]);
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.sig.Z.x.g[i]);
   fseek(fp, -2, SEEK_CUR);
   fprintf(fp, "}, {");
-  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Z.y.g[i]);
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.sig.Z.y.g[i]);
   fseek(fp, -2, SEEK_CUR);
   fprintf(fp, "}, {");
-  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Z.z.g[i]);
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.sig.Z.z.g[i]);
   fseek(fp, -2, SEEK_CUR);
   fprintf(fp, "}};\n");
 
   fprintf(fp, "BIG Y_hat_ha[3] ={{");
-  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y_hat.x.a.g[i]);
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.sig.Y_hat.x.a.g[i]);
   fseek(fp, -2, SEEK_CUR);
   fprintf(fp, "}, {");
-  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y_hat.y.a.g[i]);
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.sig.Y_hat.y.a.g[i]);
   fseek(fp, -2, SEEK_CUR);
   fprintf(fp, "}, {");
-  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y_hat.z.a.g[i]);
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.sig.Y_hat.z.a.g[i]);
   fseek(fp, -2, SEEK_CUR);
   fprintf(fp, "}};\n");
 
   fprintf(fp, "BIG Y_hat_hb[3] ={{");
-  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y_hat.x.b.g[i]);
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.sig.Y_hat.x.b.g[i]);
   fseek(fp, -2, SEEK_CUR);
   fprintf(fp, "}, {");
-  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y_hat.y.b.g[i]);
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.sig.Y_hat.y.b.g[i]);
   fseek(fp, -2, SEEK_CUR);
   fprintf(fp, "}, {");
-  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", shared_setup.spseq_sig.Y_hat.z.b.g[i]);
+  for(int i=0;i<NLEN_B256_28;i++) fprintf(fp, "%#08x, ", drone.sig.Y_hat.z.b.g[i]);
   fseek(fp, -2, SEEK_CUR);
   fprintf(fp, "}};\n");
 
   fprintf(fp, "const sign32 xesa[3]= ");
-  fprintf(fp, "{%#04x, %#04x, %#04x};\n", shared_setup.spseq_sig.Y_hat.x.a.XES, shared_setup.spseq_sig.Y_hat.y.a.XES, shared_setup.spseq_sig.Y_hat.z.a.XES );
+  fprintf(fp, "{%#04x, %#04x, %#04x};\n", drone.sig.Y_hat.x.a.XES, drone.sig.Y_hat.y.a.XES, drone.sig.Y_hat.z.a.XES );
   fprintf(fp, "const sign32 xesb[3]= ");
-  fprintf(fp, "{%#04x, %#04x, %#04x};\n", shared_setup.spseq_sig.Y_hat.x.b.XES, shared_setup.spseq_sig.Y_hat.y.b.XES, shared_setup.spseq_sig.Y_hat.z.b.XES );
+  fprintf(fp, "{%#04x, %#04x, %#04x};\n", drone.sig.Y_hat.x.b.XES, drone.sig.Y_hat.y.b.XES, drone.sig.Y_hat.z.b.XES );
 
   fprintf(fp, "const sign32 Z_xes[3]= ");
-  fprintf(fp, "{%#04x, %#04x, %#04x};\n", shared_setup.spseq_sig.Z.x.XES, shared_setup.spseq_sig.Z.y.XES, shared_setup.spseq_sig.Z.z.XES);
+  fprintf(fp, "{%#04x, %#04x, %#04x};\n", drone.sig.Z.x.XES, drone.sig.Z.y.XES, drone.sig.Z.z.XES);
   fprintf(fp, "const sign32 Y_xes[3]= ");
-  fprintf(fp, "{%#04x, %#04x, %#04x};\n", shared_setup.spseq_sig.Y.x.XES, shared_setup.spseq_sig.Y.y.XES, shared_setup.spseq_sig.Y.z.XES);
+  fprintf(fp, "{%#04x, %#04x, %#04x};\n", drone.sig.Y.x.XES, drone.sig.Y.y.XES, drone.sig.Y.z.XES);
 
   fprintf(fp, "const sign32 m1_xes[3]= ");
   fprintf(fp, "{%#04x, %#04x, %#04x};\n", drone.m1.x.XES, drone.m1.y.XES, drone.m1.z.XES);

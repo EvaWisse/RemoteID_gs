@@ -15,6 +15,10 @@ int verify()
   printf("\tVerifying broadcast...\n");
   read_bc();
 
+  if(spseq_verify(shared.spseq_bg, drone_output.new_sig, shared.spseq_pk, drone_output.m1, drone_output.m2) == EXIT_FAILURE){
+    return EXIT_FAILURE;
+  }
+
   BIG t1;
   char m[32];
   ECP T1, N;
