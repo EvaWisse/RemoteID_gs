@@ -239,23 +239,31 @@ int cca2_header()
 
     ECP_copy(&N_pre[i], &shared.spseq_bg.P);
     ECP_mul(&N_pre[i], v[i]);
+  }
 
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
     for(int j=0; j<FLIGHT_TIME; j++)
     {
+      // Z
       BIG_modmul(big, rho[i], y[j], shared.spseq_bg.p); // i= rho , j = y
       ECP_copy(&Z_pre[i][j], &drone.sig.Z);
       ECP_mul(&Z_pre[i][j], big);
 
+      // M2
       BIG_modadd(big, v[i], n[j], shared.spseq_bg.p);
       ECP2_copy(&M2_pre[i][j], &shared.spseq_bg.P_hat); // i = v , j = n
       ECP2_mul(&M2_pre[i][j], big);
 
+      // M1
       ECP2_copy(&M1_pre[i][j], &Y_hat_pre[i]); // i = y , j = n
       ECP2_mul(&M1_pre[i][j], n[j]);
 
+      // C1
       ECP2_copy(&C1_pre[i][j], &Y_hat_pre[i]); // i = y , j = u
       ECP2_mul(&C1_pre[i][j], u[j]);
 
+      // C2
       BIG_modadd(big, rho[i], u[j], shared.spseq_bg.p);
       ECP2_copy(&C2_pre[i][j], &shared.spseq_bg.P_hat); // i = rho , j = u
       ECP2_mul(&C2_pre[i][j], big);
@@ -891,7 +899,6 @@ int cca2_header()
   fseek(fp, -2, SEEK_CUR);
 
   // M1
-    // M1
   fprintf(fp, "};\nBIG M1_xa[%d][%d] = {", FLIGHT_TIME, FLIGHT_TIME);
   for(int i=0; i<FLIGHT_TIME; i++)
   {
@@ -1165,6 +1172,7 @@ int cpa_header()
   ECP Z_pre[FLIGHT_TIME][FLIGHT_TIME], Y_pre[FLIGHT_TIME], N_pre[FLIGHT_TIME], m1_pre[FLIGHT_TIME], m2_pre[FLIGHT_TIME];
   ECP2 Y_hat_pre[FLIGHT_TIME];
   BIG y[FLIGHT_TIME], rho[FLIGHT_TIME], v[FLIGHT_TIME], inv[FLIGHT_TIME], big;
+  
   csprng RNG;
   char raw[100];
   RAND_seed(&RNG, 100, raw);
@@ -1190,7 +1198,10 @@ int cpa_header()
 
     ECP_copy(&N_pre[i], &shared.spseq_bg.P);
     ECP_mul(&N_pre[i], v[i]);
+  }
 
+  for(int i=0; i<FLIGHT_TIME; i++)
+  {
     for(int j=0; j<FLIGHT_TIME; j++)
     {
       BIG_modmul(big, rho[i], y[j], shared.spseq_bg.p); /// i = rho, j=y
@@ -1485,7 +1496,6 @@ int cpa_header()
   fseek(fp, -2, SEEK_CUR);
   fprintf(fp, "};\n");
 
-  
   // m2
   fprintf(fp, "BIG m2_x[%d] = {", FLIGHT_TIME);
   for(int j=0; j<FLIGHT_TIME; j++)

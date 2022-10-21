@@ -5,31 +5,18 @@
 int main()
 {
   BIG_rcopy(p, CURVE_Order);  
+  memset(m, 0, m_size);
   sign();
   return EXIT_SUCCESS;
 }
 
 void sign()
 {
-  BIG big;
-  ECP ecp;
-  ECP2 ecp2;
-  int rho_index, v_index, y_index;
-  hash256 sh256;
   HASH256_init(&sh256);
-  char m[32];
-  byte i;
-  memset(m, 0, m_size);
 
-  csprng RNG;
-  char raw[100];
-  octet RAW = {0, sizeof(raw), raw};
-  RAW.len = 100;
-  CREATE_CSPRNG(&RNG,  &RAW);
-
-  rho_index = rand() % FLIGHT_TIME - 1;
-  v_index = rand() % FLIGHT_TIME - 1;
-  y_index = rand() % FLIGHT_TIME - 1;
+  rho_index = rand() % FLIGHT_TIME;
+  v_index = rand() % FLIGHT_TIME;
+  y_index = rand() % FLIGHT_TIME;
 
   // m1
   for (i = 0; i < NLEN_B256_28; i++)
@@ -56,10 +43,6 @@ void sign()
   ecp.z.XES = m2_xes[rho_index][2];
   ECP_toChar(bc + ecp_size, &ecp);
   hash_ECP(&sh256, ecp);
-
-  BIG y, inv_y;
-  BIG_randtrunc(y, p, 2 * CURVE_SECURITY_BN254, &RNG);
-  BIG_invmodp(inv_y, y, p);
   
   // Z
   for (i = 0; i < NLEN_B256_28; i++)

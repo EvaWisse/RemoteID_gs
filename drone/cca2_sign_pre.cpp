@@ -20,11 +20,11 @@ void sign()
 {
   HASH256_init(&sh256);
 
-  rho_index = rand() % FLIGHT_TIME - 1;
-  u_index = rand() % FLIGHT_TIME - 1;
-  v_index = rand() % FLIGHT_TIME - 1;
-  n_index = rand() % FLIGHT_TIME - 1;
-  y_index = rand() % FLIGHT_TIME - 1;
+  rho_index = rand() % FLIGHT_TIME;
+  u_index = rand() % FLIGHT_TIME;
+  v_index = rand() % FLIGHT_TIME;
+  n_index = rand() % FLIGHT_TIME;
+  y_index = rand() % FLIGHT_TIME;
 
   // m1
   for (int i = 0; i < NLEN_B256_28; i++)
